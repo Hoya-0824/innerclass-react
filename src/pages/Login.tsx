@@ -1,5 +1,7 @@
 
 
+import { Link } from 'react-router-dom';
+
 const Login = () => {
     return (
         <div className="flex justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -97,6 +99,15 @@ const Login = () => {
                             Kakao
                         </button>
                     </div>
+                </div>
+
+                <div className="text-center mt-4">
+                    <p className="text-sm text-gray-600">
+                        아직 회원이 아니신가요?{' '}
+                        <Link to="/signup" className="font-medium text-mkOrange hover:text-orange-500">
+                            회원가입
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>
