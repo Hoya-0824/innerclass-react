@@ -64,9 +64,16 @@ const MainHeader = () => {
         <div className="hidden md:block ml-auto">
           {username ? (
             <div className="flex items-center gap-4">
-              <span className="font-bold text-gray-700">
-                {username}님
-              </span>
+              <Link to="/mypage" className="flex items-center gap-2 group no-underline">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-200 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">
+                  {username}님
+                </span>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="px-5 py-2 text-sm font-bold text-mkOrange bg-white border-2 border-mkOrange cursor-pointer rounded-full hover:bg-orange-50 transition-colors duration-200"

@@ -8,7 +8,9 @@ import News from './pages/News';
 import Prediction from './pages/Prediction';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Onboarding from './pages/Onboarding';
 import GoogleCallback from './pages/GoogleCallback';
+import MyPage from './pages/MyPage';
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
           <Route path="/prediction" element={<Prediction />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/mypage" element={<MyPage />} />
           <Route path="/oauth/callback/google" element={<GoogleCallback />} />
         </Routes>
       </div>
