@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -237,6 +237,9 @@ const Chatbot = () => {
   const abortRef = useRef<AbortController | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  // Home에서 넘어온 draft 자동 전송(StrictMode 2회 실행 방지)
+  const autoSentRef = useRef(false);
+
   const groupedSessions = useMemo(() => {
     const groups = new Map<string, ChatSession[]>();
     for (const s of sessions) {
@@ -357,7 +360,7 @@ const Chatbot = () => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, loadingMore]);
 
-  const onSend = async () => {
+  const onSend = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
 
@@ -386,12 +389,11 @@ const Chatbot = () => {
         controller.signal
       );
 
-      // 첫 메시지로 서버가 세션 생성한 경우 → 사이드바 새로고침 + 해당 세션 선택
+      // 첫 메시지로 서버가 세션 생성한 경우 → 목록 갱신
       if (!sessionId) {
         setSessionId(session_id);
         await refreshSessions(false);
       } else {
-        // 세션 updated_at이 바뀌므로 목록 갱신(상단으로 올라오게)
         await refreshSessions(false);
       }
 
@@ -403,7 +405,78 @@ const Chatbot = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [input, loading, sessionId, templateId]);
+
+  // Home에서 넘어온 chatbot_draft 자동 전송
+  useEffect(() => {
+    if (autoSentRef.current) return;
+
+    const draft = sessionStorage.getItem("chatbot_draft")?.trim() ?? "";
+    const flag = sessionStorage.getItem("chatbot_autosend"); // Home에서 같이 저장하는 걸 권장
+
+    // flag가 없더라도 draft가 있으면 보내고 싶다면: flag 체크를 제거하세요.
+    if (!draft) return;
+
+    // (선택) flag를 쓰는 경우
+    if (flag !== null && flag !== "1") return;
+
+    if (!getAccessToken()) {
+      // 로그인 없으면 입력창에만 채워주고 보내진 않음
+      setInput(draft);
+      sessionStorage.removeItem("chatbot_draft");
+      sessionStorage.removeItem("chatbot_autosend");
+      requestAnimationFrame(() => textareaRef.current?.focus());
+      autoSentRef.current = true;
+      return;
+    }
+
+    autoSentRef.current = true;
+
+    // 소비
+    sessionStorage.removeItem("chatbot_draft");
+    sessionStorage.removeItem("chatbot_autosend");
+
+    // 즉시 전송 (input 상태를 거치지 않고 직접 payload로)
+    (async () => {
+      if (loading) return;
+
+      setError(null);
+      setLoading(true);
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setMessages((prev) => [...prev, { role: "user", content: draft }]);
+
+      try {
+        const { answer, session_id } = await sendChat(
+          {
+            message: draft,
+            ...(sessionId ? { session_id: sessionId } : {}),
+            ...(templateId ? { template_id: templateId } : {}),
+          },
+          controller.signal
+        );
+
+        if (!sessionId) {
+          setSessionId(session_id);
+          await refreshSessions(false);
+        } else {
+          await refreshSessions(false);
+        }
+
+        setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        setError(e?.message ?? "Chat failed");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateId]); // templateId가 정해진 뒤에 자동전송되도록(초기 템플릿 로딩 대응)
 
   const onKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {

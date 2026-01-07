@@ -1,5 +1,5 @@
 const SubHeader = () => {
-  const subMenus = ["마켓홈", "국내증시", "해외증시", "시장지표", "뉴스"];
+  const subMenus = ["마켓홈"];
 
   return (
     <div className="bg-white border-y border-gray-200 py-3">
