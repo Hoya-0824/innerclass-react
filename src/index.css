@@ -10,6 +10,7 @@
   --font-serif: "Noto Serif KR", serif;
 
   --animate-ticker: ticker 20s linear infinite;
+  --animate-fadeIn: fadeIn 0.2s ease-out;
 
   @keyframes ticker {
     0% {
@@ -18,6 +19,17 @@
 
     100% {
       transform: translateX(-50%);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 }
