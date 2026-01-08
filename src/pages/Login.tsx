@@ -1,6 +1,7 @@
 
 
 import { Link } from 'react-router-dom';
+import GoogleLoginButton from '../components/Login/GoogleLoginButton';
 
 const Login = () => {
     return (
@@ -73,32 +74,16 @@ const Login = () => {
                     </div>
                 </form>
 
-                <div className="mt-6">
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-300"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-gray-500">
-                                또는
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 grid grid-cols-2 gap-3">
-                        <button
-                            className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                        >
-                            <span className="sr-only">Google 로그인</span>
-                            Google
-                        </button>
-                        <button
-                            className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                        >
-                            <span className="sr-only">Kakao 로그인</span>
-                            Kakao
-                        </button>
-                    </div>
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                    <GoogleLoginButton text="Google" />
+                    <button
+                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md cursor-pointer shadow-sm text-sm font-medium text-black bg-[#FEE500] hover:bg-[#FDD835] transition-colors duration-200 gap-3 items-center"
+                    >
+                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 2C6.48 2 2 5.58 2 10C2 12.03 2.94 13.84 4.5 15.19C4.38 15.8 3.5 18 3.5 18C3.5 18 5.75 17.5 7.15 16.5C8.5 17.5 10.2 18 12 18C17.52 18 22 14.42 22 10C22 5.58 17.52 2 12 2Z" />
+                        </svg>
+                        Kakao
+                    </button>
                 </div>
 
                 <div className="text-center mt-4">
@@ -110,7 +95,7 @@ const Login = () => {
                     </p>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
