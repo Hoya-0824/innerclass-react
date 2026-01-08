@@ -39,6 +39,35 @@ const MainHeader = () => {
     navigate('/');
   };
 
+  const AuthButtons = () => (
+    username ? (
+      <div className="flex items-center gap-2 md:gap-4">
+        <Link to="/mypage" className="flex items-center gap-2 group no-underline">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-200 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <span className="font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">
+            {username}님
+          </span>
+        </Link>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 text-sm font-bold text-mkOrange bg-white border-2 border-mkOrange cursor-pointer rounded-full hover:bg-orange-50 transition-colors duration-200"
+        >
+          로그아웃
+        </button>
+      </div>
+    ) : (
+      <Link to="/login">
+        <button className="px-5 py-2 text-sm font-bold text-white bg-mkOrange cursor-pointer rounded-full hover:bg-orange-600 transition-colors duration-200">
+          로그인
+        </button>
+      </Link>
+    )
+  );
+
   return (
     <header className="bg-white py-5">
       <div className="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row items-center gap-4 md:gap-0">
@@ -46,6 +75,11 @@ const MainHeader = () => {
           <Link to="/" className="font-black text-3xl font-serif cursor-pointer no-underline text-black">
             Team <span className="text-mkOrange">2</span>
           </Link>
+
+          {/* Mobile Auth */}
+          <div className="md:hidden">
+            <AuthButtons />
+          </div>
         </div>
 
         <nav className="flex gap-6 md:gap-8 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 md:pb-0 scrollbar-hide md:ml-10">
@@ -61,34 +95,9 @@ const MainHeader = () => {
           ))}
         </nav>
 
+        {/* Desktop Auth */}
         <div className="hidden md:block ml-auto">
-          {username ? (
-            <div className="flex items-center gap-4">
-              <Link to="/mypage" className="flex items-center gap-2 group no-underline">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-200 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <span className="font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">
-                  {username}님
-                </span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="px-5 py-2 text-sm font-bold text-mkOrange bg-white border-2 border-mkOrange cursor-pointer rounded-full hover:bg-orange-50 transition-colors duration-200"
-              >
-                로그아웃
-              </button>
-            </div>
-          ) : (
-            // [비로그인 상태일 때] : 기존 로그인 버튼
-            <Link to="/login">
-              <button className="px-5 py-2 text-sm font-bold text-white bg-mkOrange cursor-pointer rounded-full hover:bg-orange-600 transition-colors duration-200">
-                로그인
-              </button>
-            </Link>
-          )}
+          <AuthButtons />
         </div>
       </div>
     </header>
