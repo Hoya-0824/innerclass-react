@@ -160,12 +160,11 @@ function formatNewsTime(iso?: string | null) {
 }
 
 /**
- * NOTE:
- * 기존 코드의 image_proxy 엔드포인트가 백엔드에 없다면 이미지는 비워두는 게 안전합니다.
- * (원하면 백엔드에 /api/markets/news/image_proxy/ 추가 후 다시 켜면 됩니다.)
+ * News.tsx와 동일하게 이미지 URL을 직접 반환합니다.
+ * 이미지가 없는 경우 undefined를 반환하여 placeholder를 표시합니다.
  */
-function newsImageSrc(_imageUrl?: string | null) {
-  return "";
+function newsImageSrc(imageUrl?: string | null): string | undefined {
+  return imageUrl ?? undefined;
 }
 
 async function fetchThemePicksRaw(scope: TopScope, signal?: AbortSignal): Promise<ThemePicksResponse> {
@@ -242,8 +241,8 @@ function TrendNewsCard({ n }: { n: TrendNewsItem }) {
       className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 hover:ring-black/10"
     >
       <div className="relative aspect-[16/9] bg-neutral-100">
-        {n.image_url && newsImageSrc(n.image_url) ? (
-          <img src={newsImageSrc(n.image_url)} alt="" className="h-full w-full object-cover transition group-hover:scale-[1.02]" loading="lazy" />
+        {n.image_url ? (
+          <img src={n.image_url} alt="" className="h-full w-full object-cover transition group-hover:scale-[1.02]" loading="lazy" />
         ) : (
           <div className="h-full w-full bg-neutral-100" />
         )}
@@ -290,8 +289,8 @@ function AiNewsRow({ n }: { n: AiNewsItem }) {
       className="group flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 hover:ring-black/10"
     >
       <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-neutral-100 ring-1 ring-black/5">
-        {n.image_url && newsImageSrc(n.image_url) ? (
-          <img src={newsImageSrc(n.image_url)} alt="" className="h-full w-full object-cover" loading="lazy" />
+        {n.image_url ? (
+          <img src={n.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="h-full w-full bg-neutral-100" />
         )}
