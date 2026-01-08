@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 환경 변수나 상수로 기본 URL 설정 (필요시)
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const baseURL = `${import.meta.env.VITE_API_BASE_URL}/api` || 'http://localhost:8000/api';
 
 const api = axios.create({
     baseURL,
