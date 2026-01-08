@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import LoginGateOverlay from "../components/Auth/LoginGateOverlay";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -85,7 +86,7 @@ async function sendChat(
     try {
       const data = await res.json();
       detail = data.detail ?? detail;
-    } catch {}
+    } catch { }
     throw new Error(detail);
   }
 
@@ -496,7 +497,7 @@ const Chatbot = () => {
   return (
     <div className="min-h-[calc(100vh-48px)] bg-zinc-50">
       <div className="max-w-[1180px] mx-auto px-3 md:px-6 py-6 md:py-10">
-        <div className="rounded-[22px] border border-zinc-200 bg-white shadow-[0_6px_30px_rgba(16,24,40,0.08)] overflow-hidden">
+        <div className="rounded-[22px] border border-zinc-200 bg-white shadow-[0_6px_30px_rgba(16,24,40,0.08)] overflow-hidden relative">
           <div className="flex h-[760px]">
             {/* Sidebar */}
             <aside className="w-[280px] shrink-0 border-r border-zinc-200 bg-white">
@@ -705,6 +706,11 @@ const Chatbot = () => {
               </div>
             </section>
           </div>
+
+          {/* Login Gate Overlay for unauthenticated users */}
+          {!getAccessToken() && (
+            <LoginGateOverlay message={"로그인하고\n나만의 AI 상담을 받아보세요!"} />
+          )}
         </div>
 
         <div className="mt-3 text-[11px] text-zinc-500 text-center">

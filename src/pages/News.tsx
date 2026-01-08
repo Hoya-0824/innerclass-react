@@ -5,8 +5,10 @@ import NewsDetailModal from '../components/News/NewsDetailModal';
 import TrendList from '../components/News/TrendList';
 import { TREND_DIVIDEND, TREND_VALUE, type NewsItem } from '../data/newsMockData';
 import api from '../lib/axios';
+import LoginGateOverlay from '../components/Auth/LoginGateOverlay';
 
 const News = () => {
+    const isLoggedIn = !!localStorage.getItem('access_token');
     const [aiBriefingNews, setAiBriefingNews] = useState<NewsItem[]>([]);
     const [keywordNews, setKeywordNews] = useState<NewsItem[]>([]);
     const [keywords, setKeywords] = useState<string[]>([]);
@@ -114,74 +116,81 @@ const News = () => {
                 onFilterChange={handleMarketFilterChange}
             />
 
-            {/* Section 1: Today's AI Briefing (Formerly #All Content) */}
-            <section className="mb-16">
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">오늘의 AI 브리핑</h2>
-                    <p className="text-gray-500 text-sm">AI가 추천하는 나에게 맞는 뉴스를 브리핑 해줬어요.</p>
-                </div>
+            {/* Section 1 & 2 Wrapper for Login Gate */}
+            <div className="relative">
+                {/* Section 1: Today's AI Briefing (Formerly #All Content) */}
+                <section className="mb-16">
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">오늘의 AI 브리핑</h2>
+                        <p className="text-gray-500 text-sm">AI가 추천하는 나에게 맞는 뉴스를 브리핑 해줬어요.</p>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {isLoading ? (
-                        <div className="col-span-3 text-center py-10 text-gray-400">
-                            AI 브리핑을 불러오는 중입니다...
-                        </div>
-                    ) : aiBriefingNews.length > 0 ? (
-                        aiBriefingNews.slice(0, 3).map((item) => (
-                            <div key={item.id} className="h-full">
-                                <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {isLoading ? (
+                            <div className="col-span-3 text-center py-10 text-gray-400">
+                                AI 브리핑을 불러오는 중입니다...
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-span-3 text-center py-10 text-gray-400">
-                            {marketFilter === 'international'
-                                ? '해외 뉴스가 없습니다.'
-                                : '추천 뉴스가 없습니다.'}
-                        </div>
-                    )}
-                </div>
-            </section>
+                        ) : aiBriefingNews.length > 0 ? (
+                            aiBriefingNews.slice(0, 3).map((item) => (
+                                <div key={item.id} className="h-full">
+                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 text-center py-10 text-gray-400">
+                                {marketFilter === 'international'
+                                    ? '해외 뉴스가 없습니다.'
+                                    : '추천 뉴스가 없습니다.'}
+                            </div>
+                        )}
+                    </div>
+                </section>
 
-            {/* Section 2: My Keyword News */}
-            <section className="mb-16">
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-4">내 키워드 뉴스</h2>
-                        <div className="flex flex-wrap gap-2">
-                            {displayKeywords.map((keyword, idx) => (
-                                <span
-                                    key={idx}
-                                    onClick={() => handleKeywordClick(keyword)}
-                                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${selectedKeyword === keyword
-                                        ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
-                                        : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
-                                        }`}
-                                >
-                                    {keyword}
-                                </span>
-                            ))}
+                {/* Section 2: My Keyword News */}
+                <section className="mb-16">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">내 키워드 뉴스</h2>
+                            <div className="flex flex-wrap gap-2">
+                                {displayKeywords.map((keyword, idx) => (
+                                    <span
+                                        key={idx}
+                                        onClick={() => handleKeywordClick(keyword)}
+                                        className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${selectedKeyword === keyword
+                                            ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
+                                            : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
+                                            }`}
+                                    >
+                                        {keyword}
+                                    </span>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {isKeywordLoading ? (
-                        <div className="col-span-3 text-center py-10 text-gray-400">
-                            키워드 뉴스를 불러오는 중입니다...
-                        </div>
-                    ) : keywordNews.length > 0 ? (
-                        keywordNews.slice(0, 3).map((item) => (
-                            <div key={item.id} className="h-full">
-                                <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {isKeywordLoading ? (
+                            <div className="col-span-3 text-center py-10 text-gray-400">
+                                키워드 뉴스를 불러오는 중입니다...
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-span-3 text-center py-10 text-gray-400">
-                            해당 키워드의 뉴스가 없습니다.
-                        </div>
-                    )}
-                </div>
-            </section>
+                        ) : keywordNews.length > 0 ? (
+                            keywordNews.slice(0, 3).map((item) => (
+                                <div key={item.id} className="h-full">
+                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-3 text-center py-10 text-gray-400">
+                                해당 키워드의 뉴스가 없습니다.
+                            </div>
+                        )}
+                    </div>
+
+                </section>
+
+                {/* Login Gate Overlay for unauthenticated users */}
+                {!isLoggedIn && <LoginGateOverlay />}
+            </div>
 
             {/* Section 3: Today's Trend News */}
             <section className="mb-16">
