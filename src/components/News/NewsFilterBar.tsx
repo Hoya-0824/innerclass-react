@@ -32,7 +32,7 @@ const NewsFilterBar: React.FC<NewsFilterBarProps> = ({ activeFilter, onFilterCha
 
 
             {/* Search Bar */}
-            <div className="relative w-full md:max-w-md">
+            {/* <div className="relative w-full md:max-w-md">
                 <input
                     type="text"
                     placeholder="내 주식에 맞는 뉴스 찾아줘"
@@ -44,7 +44,7 @@ const NewsFilterBar: React.FC<NewsFilterBarProps> = ({ activeFilter, onFilterCha
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 };

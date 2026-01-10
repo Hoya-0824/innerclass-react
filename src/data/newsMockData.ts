@@ -5,6 +5,7 @@ export interface NewsItem {
     summary?: string;
     tags?: string[];
     imageUrl?: string;
+    originUrl?: string;
 }
 
 export interface TrendItem {
@@ -13,7 +14,6 @@ export interface TrendItem {
     title: string;
     date: string;
 }
-
 
 export const TREND_DIVIDEND: TrendItem[] = [
     { id: 1, label: "KT&G", title: "KT&G, 헴어워드 코리아 2025 대기업 종합...", date: "2026-01-02" },

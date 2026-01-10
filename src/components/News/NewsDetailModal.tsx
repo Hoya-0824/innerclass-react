@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { NewsItem } from '../../data/newsMockData';
 import type { NewsAnalysis } from '../../types/newsSummary';
 import api from '../../lib/axios';
@@ -8,7 +9,9 @@ interface NewsDetailModalProps {
     onClose: () => void;
 }
 
+
 const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
+    const navigate = useNavigate();
     const [analysis, setAnalysis] = useState<NewsAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -87,11 +90,11 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                 {/* Header with close button */}
                 <div className="sticky top-0 bg-white z-10 flex justify-between items-center p-4 border-b border-gray-100">
                     <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                             </svg>
-                        </button>
+                        </button> */}
                         <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
@@ -258,20 +261,20 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                         ) : analysis ? (
                             <>
                                 {/* 감정 점수 */}
-                                <div className="flex items-center justify-between mb-4">
+                                {/* <div className="flex items-center justify-between mb-4">
                                     <span className="text-sm font-medium text-gray-700">🔥 감정 점수</span>
                                     <span className="text-lg font-bold text-gray-900">{analysis.sentiment_score}점</span>
-                                </div>
+                                </div> */}
 
                                 {/* 관련 종목 */}
-                                <div className="mb-4">
+                                {/* <div className="mb-4">
                                     <span className="text-sm font-medium text-gray-700 block mb-2">⭐ 관련 종목</span>
                                     <div className="flex gap-2">
                                         {item.tags?.map((tag, idx) => (
                                             <span key={idx} className="bg-white border border-gray-200 text-gray-700 text-sm px-3 py-1 rounded-lg">{tag}</span>
                                         ))}
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* 전략 가이드 */}
                                 <div className="mb-4">
@@ -280,13 +283,13 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                         <div className="grid grid-cols-2 border-b border-gray-200">
                                             <div className="p-3 font-medium text-sm text-gray-700 border-r border-gray-200">단기 관점</div>
                                             <div className="p-3 text-sm text-gray-600">
-                                                <p>{analysis.strategy_guide.short_term}</p>
+                                                <p>{analysis.strategy_guide?.short_term || '정보 없음'}</p>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2">
                                             <div className="p-3 font-medium text-sm text-gray-700 border-r border-gray-200">장기 관점</div>
                                             <div className="p-3 text-sm text-gray-600">
-                                                <p>{analysis.strategy_guide.long_term}</p>
+                                                <p>{analysis.strategy_guide?.long_term || '정보 없음'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -349,6 +352,37 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                 ))}
                             </div>
                         ) : null}
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3 pb-4">
+                        {item.originUrl && (
+                            <button
+                                onClick={() => window.open(item.originUrl, '_blank')}
+                                className="w-full sm:w-auto px-6 py-3 bg-gray-900 cursor-pointer hover:bg-gray-800 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            >
+                                <span>뉴스 원문 보러가기</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                            </button>
+                        )}
+                        <button
+                            onClick={() => {
+                                const question = `다음 뉴스 기사에 대해 궁금한 점이 있어.\n\n제목: ${item.title}\n링크: ${item.originUrl || '링크 없음'}\n\n이 기사의 주요 내용과 시사점을 알려줘.`;
+                                sessionStorage.setItem('chatbot_draft', question);
+                                sessionStorage.setItem('chatbot_autosend', '1');
+                                navigate('/chatbot');
+                            }}
+                            className="w-full sm:w-auto px-6 py-3 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                        >
+                            <span>챗봇에게 물어보기</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>

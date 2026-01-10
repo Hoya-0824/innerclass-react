@@ -1,5 +1,4 @@
 // LLM 뉴스 요약 API 응답 타입
-
 export interface VocabularyItem {
     term: string;
     definition: string;

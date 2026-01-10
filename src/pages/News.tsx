@@ -19,6 +19,7 @@ const News = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isKeywordLoading, setIsKeywordLoading] = useState(false);
 
+    const username = localStorage.getItem('user_name')
     // 표시할 키워드 목록 (전체 제외)
     const displayKeywords = keywords.slice(0, 3);
 
@@ -39,9 +40,18 @@ const News = () => {
             id: item.id,
             title: item.title,
             summary: item.summary,
-            date: item.published_at ? new Date(item.published_at).toLocaleDateString() : '날짜 미상',
-            tags: [item.tag || "뉴스"],
-            imageUrl: item.image_url || "https://images.unsplash.com/photo-1611974765270-ca1258822981?w=800&auto=format&fit=crop"
+            date: item.published_at ? (() => {
+                const d = new Date(item.published_at);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const hours = String(d.getHours()).padStart(2, '0');
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+            })() : '날짜 미상',
+            tags: item.tags || [item.tag || "뉴스"],
+            imageUrl: item.image_url || "https://images.unsplash.com/photo-1611974765270-ca1258822981?w=800&auto=format&fit=crop",
+            originUrl: item.url
         }));
 
         return { news: mappedData, keywords: response.data.keywords };
@@ -121,8 +131,12 @@ const News = () => {
                 {/* Section 1: Today's AI Briefing (Formerly #All Content) */}
                 <section className="mb-16">
                     <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">오늘의 AI 브리핑</h2>
-                        <p className="text-gray-500 text-sm">AI가 추천하는 나에게 맞는 뉴스를 브리핑 해줬어요.</p>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                            {username
+                                ? `${username}님을 위한 AI 브리핑`
+                                : '오늘의 AI 브리핑'}
+                        </h2>
+                        <p className="text-gray-500 text-sm">{username}님에게 꼭 필요한 뉴스를 브리핑 해봤어요.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
