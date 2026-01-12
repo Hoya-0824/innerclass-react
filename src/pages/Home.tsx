@@ -1,675 +1,15 @@
-// src/pages/Home.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-/** ===== Today Market API ===== */
-type MarketCode = "KOSDAQ" | "KOSPI" | "NASDAQ";
-
-type StockRow = {
-  symbol: string;
-  name: string;
-  exchange: string;
-  currency: string;
-
-  open: number | null;
-  close: number | null;
-
-  // ✅ percent points (e.g. 30.0 => 30%, -5.01 => -5%)
-  intraday_pct: number | null;
-  change_pct: number | null;
-
-  market_cap: number | null;
-  volume: number | null;
-  date: string;
-
-  spark?: number[];
-};
-
-type TodayMarketResponse = {
-  market: MarketCode;
-  exchange?: string | null;
-  asof: string;
-
-  top_market_cap: StockRow[];
-  top_gainers: StockRow[];
-  top_drawdown: StockRow[];
-};
-
-/** ===== Raw Today Market API (backend 실제 응답) ===== */
-type TodayMarketRawRow = {
-  rank: number;
-  symbol_code: string; // e.g. "A005930" or "AAPL"
-  name: string;
-  trade_price: number | null;
-
-  // ✅ backend에서 스케일이 섞여 올 수 있음
-  // - 30.0 (퍼센트포인트)
-  // - -0.05017561 (ratio = -5.017%)
-  change_rate: number | null;
-
-  payload?: any; // include_payload=1일 때
-};
-
-type TodayMarketRawResponse = {
-  market: MarketCode;
-  asof: string;
-  top_market_cap: TodayMarketRawRow[];
-  top_gainers: TodayMarketRawRow[];
-  top_drawdown: TodayMarketRawRow[];
-};
-
-/** ===== Trend Keywords API ===== */
-type TrendScope = "KR" | "US";
-
-type TrendNewsItem = {
-  title: string;
-  summary: string;
-  link: string;
-  image_url: string;
-  published_at: string;
-  needs_image_gen?: boolean;
-
-  related_stock_name?: string;
-  related_stock_code?: string;
-};
-
-type TrendKeywordItem = {
-  keyword: string;
-  reason: string;
-  news?: TrendNewsItem[];
-};
-
-type TrendKeywordsResponse = {
-  scope: TrendScope;
-  date: string;
-  items: TrendKeywordItem[];
-};
-
-type TrendTab = {
-  id: string; // `${scope}:${keyword}:${index}`
-  scope: TrendScope;
-  keyword: string;
-  reason: string;
-  news: TrendNewsItem[];
-  date: string;
-};
-
-/** ===== Sector News API ===== */
-type NewsMarketFilter = "all" | "domestic" | "international";
-
-type SectorItem = {
-  sector: string;
-  label: string;
-  count: number;
-};
-
-type SectorListResponse = {
-  market: NewsMarketFilter;
-  items: SectorItem[];
-};
-
-type SectorNewsRow = {
-  id: number;
-  title: string;
-
-  related_name?: string;
-  ticker?: string;
-
-  published_at: string;
-  url: string;
-
-  market: "KR" | "INTERNATIONAL" | string;
-
-  sector: string;
-};
-
-type SectorNewsResponse = {
-  sector: string;
-  label: string;
-  market: NewsMarketFilter;
-  news: SectorNewsRow[];
-};
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
-
-function classNames(...xs: Array<string | false | undefined | null>) {
-  return xs.filter(Boolean).join(" ");
-}
-
-/**
- * ✅ percent points 기반 표기
- *  - 30.0 -> "+30%"
- *  - -5.01 -> "-5%"
- *  - 0.49 -> "0%" (기본은 정수 표시)
- */
-function formatPct(x: number | null | undefined): string {
-  if (x === null || x === undefined || Number.isNaN(x)) return "-";
-  const v = Math.trunc(x);
-  if (v > 0) return `+${v}%`;
-  if (v < 0) return `${v}%`;
-  return "0%";
-}
-
-function getAccessToken(): string | null {
-  return localStorage.getItem("access_token");
-}
-
-function formatDateTimeKST(iso: string): string {
-  if (!iso) return "";
-  try {
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${y}-${m}-${day} ${hh}:${mm}`;
-  } catch {
-    return "";
-  }
-}
-
-/**
- * ✅ change_rate 스케일 혼재 교정
- * - abs(x) <= 1.0 인 경우: ratio(0.3=30%)로 보고 *100
- * - 그 외: percent points로 간주(30=30%)
- */
-function normalizePctPoints(x: number | null | undefined): number | null {
-  if (x === null || x === undefined || Number.isNaN(x)) return null;
-
-  const ax = Math.abs(x);
-
-  // ratio로 오는 케이스(대개 0.xx)
-  if (ax > 0 && ax <= 1.0) {
-    return x * 100.0;
-  }
-
-  // percent points로 오는 케이스(대개 1~30 정도)
-  return x;
-}
-
-function formatPriceByMarket(marketLabel: string, price: number | null | undefined): string {
-  if (price === null || price === undefined || Number.isNaN(price)) return "-";
-
-  const mk = (marketLabel || "").toUpperCase();
-  if (mk === "NASDAQ") {
-    try {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-        Math.trunc(price)
-      );
-    } catch {
-      return `$${Math.trunc(price).toLocaleString("en-US")}`;
-    }
-  }
-
-  // KOSPI / KOSDAQ
-  try {
-    return new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW", maximumFractionDigits: 0 }).format(
-      Math.trunc(price)
-    );
-  } catch {
-    return `₩${Math.trunc(price).toLocaleString("ko-KR")}`;
-  }
-}
-
-/** ===== Arrow badge ===== */
-function ArrowBadge({ pct }: { pct: number | null }) {
-  if (pct === null || pct === undefined || Number.isNaN(pct)) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold text-neutral-700 ring-1 ring-black/5">
-        —
-      </span>
-    );
-  }
-
-  if (pct === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-bold text-neutral-700 ring-1 ring-black/5">
-        0%
-      </span>
-    );
-  }
-
-  const up = pct > 0;
-  const bg = up ? "bg-rose-50 ring-rose-200 text-rose-700" : "bg-blue-50 ring-blue-200 text-blue-700";
-  return (
-    <span className={classNames("inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1", bg)}>
-      <span className="leading-none">{up ? "▲" : "▼"}</span>
-      <span className="tabular-nums">{formatPct(pct)}</span>
-    </span>
-  );
-}
-
-/** ===== Backend -> Front mapping ===== */
-function mapRawRowToStockRow(raw: TodayMarketRawRow, asof: string, opts?: { forceNegative?: boolean }): StockRow {
-  const symbol = (raw.symbol_code ?? "").trim();
-  const price = raw.trade_price ?? null;
-
-  // ✅ 스케일 교정
-  let pct = normalizePctPoints(raw.change_rate);
-
-  // ✅ drawdown에서 혹시 양수로 오면(소스 이슈) 강제 음수 처리
-  if (opts?.forceNegative && pct !== null && pct > 0) {
-    pct = -pct;
-  }
-
-  // payload에서 spark 후보를 최대한 유연하게 찾음
-  const p = raw.payload ?? {};
-  const sparkCandidate =
-    p?.spark ??
-    p?.sparkline ??
-    p?.chart_prices ??
-    p?.prices ??
-    p?.chart?.prices ??
-    p?.chart?.data ??
-    p?.mini_chart ??
-    null;
-
-  const spark = Array.isArray(sparkCandidate)
-    ? sparkCandidate
-        .map((x: any) => (typeof x === "number" ? x : Number(x)))
-        .filter((x: any) => Number.isFinite(x))
-    : undefined;
-
-  return {
-    symbol,
-    name: raw.name ?? symbol,
-    exchange: "",
-    currency: "",
-    open: null,
-    close: price,
-    intraday_pct: pct,
-    change_pct: pct,
-    market_cap: null,
-    volume: null,
-    date: asof,
-    spark,
-  };
-}
-
-async function fetchTodayMarket(
-  params: { market: MarketCode; date?: string; limit?: number },
-  signal?: AbortSignal
-): Promise<TodayMarketResponse> {
-  const qs = new URLSearchParams();
-  qs.set("market", params.market);
-  if (params.date) qs.set("date", params.date);
-  if (params.limit) qs.set("limit", String(params.limit));
-
-  // ✅ chart/추가 정보가 payload에 있을 수 있으니 include_payload=1
-  qs.set("include_payload", "1");
-
-  const url = `${API_BASE_URL}/api/markets/today/?${qs.toString()}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`today_market fetch failed: ${res.status}`);
-
-  const raw = (await res.json()) as TodayMarketRawResponse;
-
-  return {
-    market: raw.market,
-    asof: raw.asof,
-    top_market_cap: (raw.top_market_cap ?? []).map((r) => mapRawRowToStockRow(r, raw.asof)),
-    top_gainers: (raw.top_gainers ?? []).map((r) => mapRawRowToStockRow(r, raw.asof)),
-    // ✅ drawdown은 음수 보정 옵션 적용
-    top_drawdown: (raw.top_drawdown ?? []).map((r) => mapRawRowToStockRow(r, raw.asof, { forceNegative: true })),
-  };
-}
-
-async function fetchTrendKeywords(
-  params: { scope: TrendScope; limit?: number; with_news?: 0 | 1 },
-  signal?: AbortSignal
-): Promise<TrendKeywordsResponse> {
-  const qs = new URLSearchParams();
-  qs.set("scope", params.scope);
-  qs.set("limit", String(params.limit ?? 3));
-  qs.set("with_news", String(params.with_news ?? 1));
-
-  const url = `${API_BASE_URL}/api/recommend/keywords/?${qs.toString()}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`trend_keywords fetch failed: ${res.status}`);
-  return res.json();
-}
-
-/** ===== sector APIs ===== */
-async function fetchSectorList(params: { market?: NewsMarketFilter }, signal?: AbortSignal): Promise<SectorListResponse> {
-  const qs = new URLSearchParams();
-  if (params.market) qs.set("market", params.market);
-  const url = `${API_BASE_URL}/api/news/sectors/?${qs.toString()}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`sector_list fetch failed: ${res.status}`);
-  return res.json();
-}
-
-async function fetchNewsBySector(
-  params: { sector: string; market?: NewsMarketFilter; limit?: number },
-  signal?: AbortSignal
-): Promise<SectorNewsResponse> {
-  const qs = new URLSearchParams();
-  qs.set("sector", params.sector);
-  if (params.market) qs.set("market", params.market);
-  qs.set("limit", String(params.limit ?? 30));
-  const url = `${API_BASE_URL}/api/news/by-sector/?${qs.toString()}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`news_by_sector fetch failed: ${res.status}`);
-  return res.json();
-}
-
-function SectionTitle({ title, right }: { title: string; right?: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-lg font-semibold text-neutral-900">{title}</div>
-      {right ? <div className="shrink-0">{right}</div> : null}
-    </div>
-  );
-}
-
-/** ============================
- *  ✅ 오늘의 증시 UI
- *  - TOP1 제거
- *  - 하단 우측 KOSDAQ/KOSPI/NASDAQ 제거
- *  - 카드 세로 높이 축소(가로 비율 유지)
- *  - 가격을 상승/하락 아이콘(ArrowBadge) 바로 왼쪽으로 이동
- * ============================ */
-function MarketPill({ text }: { text: string }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-[#216BFF]/10 px-2.5 py-1 text-[11px] font-bold text-[#216BFF]">
-      {text}
-    </span>
-  );
-}
-
-function PricePill({ marketLabel, price }: { marketLabel: string; price: number | null }) {
-  return (
-    <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-[12px] font-extrabold text-neutral-900 ring-1 ring-black/10 tabular-nums">
-      {formatPriceByMarket(marketLabel, price)}
-    </span>
-  );
-}
-
-function MoverTile({
-  kind,
-  row,
-  marketLabel,
-}: {
-  kind: "gainer" | "loser";
-  row: StockRow | null;
-  marketLabel: string;
-}) {
-  const isGainer = kind === "gainer";
-  const label = isGainer ? "급상승 1위" : "급하락 1위";
-
-  if (!row) {
-    return (
-      <div className="rounded-2xl bg-white p-3 ring-1 ring-black/5">
-        <div className="text-[11px] font-semibold text-neutral-500">{label}</div>
-        <div className="mt-2 text-sm text-neutral-500">데이터가 없습니다.</div>
-      </div>
-    );
-  }
-
-  const price = row.close ?? null;
-  const pct = row.intraday_pct ?? row.change_pct ?? null;
-
-  return (
-    <div className={classNames("rounded-2xl bg-white p-3 ring-1 ring-black/5 transition", "hover:shadow-sm hover:ring-black/10")}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[11px] font-semibold text-neutral-500">{label}</div>
-          <div className="mt-1 truncate text-[14px] font-extrabold text-neutral-900">{row.name}</div>
-
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-neutral-500">
-            <span className="truncate font-semibold text-neutral-700">{row.symbol}</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-[11px] font-semibold text-neutral-500">{marketLabel}</span>
-          </div>
-        </div>
-
-        {/* ✅ 가격을 ArrowBadge 바로 왼쪽에 배치 */}
-        <div className="shrink-0 flex items-center gap-2">
-          <PricePill marketLabel={marketLabel} price={price} />
-          <ArrowBadge pct={pct} />
-        </div>
-      </div>
-
-      {/* ✅ 카드 높이 축소를 위해 중간 divider/큰 여백 제거 */}
-      <div className="mt-2 flex items-center justify-between text-[11px]">
-        <div
-          className={classNames(
-            "inline-flex items-center gap-2 rounded-full px-2.5 py-1 font-semibold ring-1",
-            isGainer ? "bg-rose-50 text-rose-700 ring-rose-200" : "bg-blue-50 text-blue-700 ring-blue-200"
-          )}
-        >
-          <span className="leading-none">{isGainer ? "▲" : "▼"}</span>
-          <span>{isGainer ? "상승 모멘텀" : "하락 압력"}</span>
-        </div>
-
-        {/* ✅ 우측 KOSDAQ/KOSPI/NASDAQ 텍스트 제거 */}
-        <div />
-      </div>
-    </div>
-  );
-}
-
-function MarketMoversCard({
-  title,
-  marketLabel,
-  topGainer,
-  topLoser,
-}: {
-  title: string;
-  marketLabel: string;
-  topGainer: StockRow | null;
-  topLoser: StockRow | null;
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
-      <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-[#216BFF]/8 to-transparent" />
-
-      {/* ✅ 전체 padding 줄여서 높이 축소 */}
-      <div className="relative p-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-extrabold text-neutral-900">{title}</div>
-              <MarketPill text={marketLabel} />
-            </div>
-          </div>
-
-          {/* ✅ TOP1 뱃지 제거 */}
-          <div />
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-1 gap-2.5">
-          <MoverTile kind="gainer" row={topGainer} marketLabel={marketLabel} />
-          <MoverTile kind="loser" row={topLoser} marketLabel={marketLabel} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** ===== Trend UI helpers ===== */
-function getHost(url: string): string {
-  try {
-    const u = new URL(url);
-    return u.hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
-function TrendNewsCard({ item }: { item: TrendNewsItem }) {
-  const host = getHost(item.link);
-  const hasImg = Boolean(item.image_url);
-
-  return (
-    <a
-      href={item.link}
-      target="_blank"
-      rel="noreferrer"
-      className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5 hover:shadow-md transition-shadow"
-    >
-      <div className="relative aspect-[16/9] bg-neutral-100">
-        {hasImg ? (
-          <img
-            src={item.image_url}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
-
-      <div className="p-3">
-        <div className="line-clamp-2 text-sm font-semibold text-neutral-900">{item.title}</div>
-        <div className="mt-2 line-clamp-2 text-xs text-neutral-600">{item.summary}</div>
-
-        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-          {host ? <span className="truncate">{host}</span> : null}
-          {host && item.published_at ? <span className="text-neutral-300">•</span> : null}
-          {item.published_at ? <span className="shrink-0">{item.published_at}</span> : null}
-        </div>
-      </div>
-    </a>
-  );
-}
-
-/** ===== Cute arrow buttons (no external icons) ===== */
-function CarouselArrowButton({
-  dir,
-  disabled,
-  onClick,
-}: {
-  dir: "left" | "right";
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  const base =
-    "absolute top-1/2 -translate-y-1/2 z-10 rounded-full p-2 sm:p-2.5 ring-1 transition " +
-    "backdrop-blur bg-white/70 hover:bg-white shadow-sm";
-  const pos = dir === "left" ? "left-2" : "right-2";
-  const state = disabled
-    ? "opacity-30 cursor-not-allowed ring-black/5"
-    : "opacity-100 cursor-pointer ring-black/10 hover:ring-black/20";
-
-  return (
-    <button
-      type="button"
-      aria-label={dir === "left" ? "이전" : "다음"}
-      disabled={disabled}
-      onClick={onClick}
-      className={classNames(base, pos, state)}
-    >
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#216BFF]/10">
-        <span className="text-xl leading-none text-neutral-800">{dir === "left" ? "‹" : "›"}</span>
-      </span>
-    </button>
-  );
-}
-
-/** ===== Sector UI ===== */
-function SectorLeftItem({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={classNames(
-        "relative w-full text-left rounded-lg px-3 py-2 transition",
-        active ? "bg-white shadow-sm ring-1 ring-black/5" : "hover:bg-white/60"
-      )}
-    >
-      <span
-        className={classNames(
-          "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full",
-          active ? "bg-neutral-900" : "bg-transparent"
-        )}
-      />
-      <div
-        className={classNames(
-          "pl-3 text-[13px] leading-4",
-          active ? "font-extrabold text-neutral-900" : "font-semibold text-neutral-700"
-        )}
-      >
-        {label}
-      </div>
-    </button>
-  );
-}
-
-function SectorScrollButton({
-  dir,
-  disabled,
-  onClick,
-}: {
-  dir: "up" | "down";
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={dir === "up" ? "위로 스크롤" : "아래로 스크롤"}
-      disabled={disabled}
-      onClick={onClick}
-      className={classNames(
-        "h-7 w-7 rounded-full ring-1 shadow-sm transition flex items-center justify-center",
-        "backdrop-blur bg-white/80 hover:bg-white",
-        disabled ? "opacity-25 cursor-not-allowed ring-black/5" : "opacity-100 ring-black/10 hover:ring-black/20"
-      )}
-    >
-      <span className="text-[14px] leading-none text-neutral-800">{dir === "up" ? "˄" : "˅"}</span>
-    </button>
-  );
-}
-
-function pickMarketTag(row: SectorNewsRow): { text: string; cls: string } {
-  const mk = (row.market || "").toUpperCase();
-  if (mk === "KR") return { text: "국내", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
-  if (mk === "INTERNATIONAL") return { text: "해외", cls: "bg-indigo-50 text-indigo-700 ring-indigo-200" };
-  return { text: "구분", cls: "bg-neutral-100 text-neutral-700 ring-black/5" };
-}
-
-function SectorNewsRowItem({ row }: { row: SectorNewsRow }) {
-  const tag = pickMarketTag(row);
-  const dt = formatDateTimeKST(row.published_at);
-
-  return (
-    <a href={row.url} target="_blank" rel="noreferrer" className="group block" title={row.title}>
-      {/* ✅ 태그 왼쪽 살짝 잘리는 현상 방지: px-0.5 + 태그에 ml-0.5 */}
-      <div className="flex items-center gap-3 border-b border-neutral-200/70 py-2.5 px-0.5">
-        <div className="shrink-0">
-          <span
-            className={classNames(
-              "inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-semibold ring-1 ml-0.5",
-              tag.cls
-            )}
-          >
-            {tag.text}
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-semibold text-neutral-900 group-hover:text-neutral-950">{row.title}</div>
-        </div>
-
-        <div className="shrink-0 text-[12px] text-neutral-400 tabular-nums">{dt}</div>
-      </div>
-    </a>
-  );
-}
+import type { TrendTab, TrendKeywordsResponse, SectorItem, TodayMarketResponse, SectorNewsRow, NewsDetailItem } from "./home/types";
+import { getAccessToken, classNames } from "./home/utils";
+import { fetchTodayMarket, fetchTrendKeywords, fetchSectorList, fetchNewsBySector } from "./home/api";
+
+import { SectionTitle } from "./home/components/SectionTitle";
+import { NewsInsightModal } from "./home/components/NewsInsightModal";
+import { TrendNewsCard, CarouselArrowButton } from "./home/components/TrendNewsCarousel";
+import { SectorLeftItem, SectorScrollButton, SectorNewsRowItem } from "./home/components/SectorNews";
+import { MarketMoversCard } from "./home/components/MarketMoversCard";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -757,6 +97,20 @@ const Home = () => {
   const [canSectorUp, setCanSectorUp] = useState(false);
   const [canSectorDown, setCanSectorDown] = useState(false);
 
+  /** ✅ 뉴스 분석 모달 */
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<NewsDetailItem | null>(null);
+
+  const openDetail = (it: NewsDetailItem) => {
+    setDetailItem(it);
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setDetailItem(null);
+  };
+
   const updateScrollState = (el: HTMLDivElement | null, setUp: (v: boolean) => void, setDown: (v: boolean) => void) => {
     if (!el) {
       setUp(false);
@@ -769,11 +123,9 @@ const Home = () => {
     setDown(max - top > 2);
   };
 
-  const updateSectorItemsScrollState = () =>
-    updateScrollState(sectorItemsRef.current, setCanSectorItemsUp, setCanSectorItemsDown);
+  const updateSectorItemsScrollState = () => updateScrollState(sectorItemsRef.current, setCanSectorItemsUp, setCanSectorItemsDown);
 
-  const updateSectorNewsScrollState = () =>
-    updateScrollState(sectorNewsListRef.current, setCanSectorUp, setCanSectorDown);
+  const updateSectorNewsScrollState = () => updateScrollState(sectorNewsListRef.current, setCanSectorUp, setCanSectorDown);
 
   const scrollListBy = (el: HTMLDivElement | null, dir: "up" | "down") => {
     if (!el) return;
@@ -792,6 +144,58 @@ const Home = () => {
     sessionStorage.setItem("chatbot_autosend", "1");
     navigate("/chatbot");
   };
+
+  // =========================================================
+  // ✅ Market Sessions (OPEN/CLOSED/HOLIDAY ...) : 60초 폴링
+  //   - MarketMoversCard의 marketLabel 옆에 배지 표시용
+  // =========================================================
+  type MarketLabel = "KOSDAQ" | "KOSPI" | "NASDAQ";
+  type MarketSessionStatus = "OPEN" | "PRE_OPEN" | "POST_CLOSE" | "CLOSED" | "HOLIDAY";
+
+  type MarketSessionPayload = {
+    status: MarketSessionStatus;
+    asof: string;
+    calendar_code: string;
+    reason: string;
+    next_open_at?: string | null;
+    prev_close_at?: string | null;
+  };
+
+  type MarketSessionsResponse = {
+    asof: string;
+    pre_open_grace_min: number;
+    post_close_grace_min: number;
+    sessions: Record<MarketLabel, MarketSessionPayload>;
+  };
+
+  const [sessions, setSessions] = useState<Record<MarketLabel, MarketSessionPayload> | null>(null);
+  const sessionsAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const run = async () => {
+      if (sessionsAbortRef.current) sessionsAbortRef.current.abort();
+      const controller = new AbortController();
+      sessionsAbortRef.current = controller;
+
+      try {
+        const res = await fetch(`/api/markets/sessions/?pre_open_grace_min=5&post_close_grace_min=10&markets=KOSDAQ,KOSPI,NASDAQ`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data: MarketSessionsResponse = await res.json();
+        setSessions(data.sessions);
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+      }
+    };
+
+    run();
+    const t = window.setInterval(run, 60 * 1000);
+    return () => {
+      window.clearInterval(t);
+      if (sessionsAbortRef.current) sessionsAbortRef.current.abort();
+    };
+  }, []);
 
   // today_market polling (5분)
   useEffect(() => {
@@ -1031,8 +435,6 @@ const Home = () => {
   /** ✅ 섹터 리스트 높이: 아이템 수에 맞게(최대 5개까지) 자동 축소 */
   const sectorListHeightPx = useMemo(() => {
     const visible = Math.max(1, Math.min(5, sectorItems.length || 1));
-    // SectorLeftItem: py-2 + text line -> 대략 40~42px, gap(space-y-1=4px)
-    // 여유 포함해서 44px로 스냅
     const rowH = 44;
     const gapH = 4; // space-y-1
     return visible * rowH + Math.max(0, visible - 1) * gapH;
@@ -1041,6 +443,9 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
       <div className="mx-auto max-w-6xl px-4 py-6">
+        {/* ✅ 뉴스 분석 모달 */}
+        <NewsInsightModal open={detailOpen} item={detailItem} onClose={closeDetail} />
+
         {/* 상단 채팅 입력 */}
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
           <div className="flex flex-col gap-4">
@@ -1083,18 +488,16 @@ const Home = () => {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {["내 관심종목 뉴스 요약해줘", "오늘 시장 분위기 3줄 요약", "나스닥 프리마켓 급등 이유?", "급등주 리스크 체크리스트"].map(
-                (q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => goChatbot(q)}
-                    className="rounded-full bg-white px-3 py-2 text-sm font-medium text-neutral-700 ring-1 ring-black/5 hover:bg-[#216BFF]/5 hover:text-neutral-900"
-                  >
-                    {q}
-                  </button>
-                )
-              )}
+              {["내 관심종목 뉴스 요약해줘", "오늘 시장 분위기 3줄 요약", "나스닥 프리마켓 급등 이유?", "급등주 리스크 체크리스트"].map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => goChatbot(q)}
+                  className="rounded-full bg-white px-3 py-2 text-sm font-medium text-neutral-700 ring-1 ring-black/5 hover:bg-[#216BFF]/5 hover:text-neutral-900"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -1198,13 +601,10 @@ const Home = () => {
                       e.preventDefault();
                     }}
                   >
-                    <div
-                      className="flex gap-4 will-change-transform"
-                      style={{ transform: `translateX(${translateX}px)`, transition: "transform 220ms ease" }}
-                    >
+                    <div className="flex gap-4 will-change-transform" style={{ transform: `translateX(${translateX}px)`, transition: "transform 220ms ease" }}>
                       {activeTab.news.map((n, idx) => (
                         <div key={`${activeTab.id}:${idx}`} className="shrink-0 w-[320px] sm:w-[340px] lg:w-[360px]">
-                          <TrendNewsCard item={n} />
+                          <TrendNewsCard item={n} onOpen={openDetail} />
                         </div>
                       ))}
                     </div>
@@ -1230,11 +630,7 @@ const Home = () => {
                     <div className="text-[14px] font-semibold text-neutral-900">섹터</div>
                     <div className="flex items-center gap-1.5">
                       <SectorScrollButton dir="up" disabled={!canSectorItemsUp} onClick={() => scrollListBy(sectorItemsRef.current, "up")} />
-                      <SectorScrollButton
-                        dir="down"
-                        disabled={!canSectorItemsDown}
-                        onClick={() => scrollListBy(sectorItemsRef.current, "down")}
-                      />
+                      <SectorScrollButton dir="down" disabled={!canSectorItemsDown} onClick={() => scrollListBy(sectorItemsRef.current, "down")} />
                     </div>
                   </div>
 
@@ -1256,18 +652,12 @@ const Home = () => {
                         ref={sectorItemsRef}
                         className={classNames("space-y-1 overflow-y-auto pr-1")}
                         style={{
-                          // ✅ 섹터 개수에 맞게 세로 축소, 단 5개 초과면 스크롤
                           height: sectorListHeightPx,
                           maxHeight: 220,
                         }}
                       >
                         {sectorItems.map((s) => (
-                          <SectorLeftItem
-                            key={s.sector}
-                            active={s.sector === activeSector}
-                            label={s.label}
-                            onClick={() => setActiveSector(s.sector)}
-                          />
+                          <SectorLeftItem key={s.sector} active={s.sector === activeSector} label={s.label} onClick={() => setActiveSector(s.sector)} />
                         ))}
                       </div>
                     )}
@@ -1282,11 +672,7 @@ const Home = () => {
                     <div className="text-[15px] font-semibold text-neutral-900">{activeSectorLabel}</div>
                     <div className="flex items-center gap-1.5">
                       <SectorScrollButton dir="up" disabled={!canSectorUp} onClick={() => scrollListBy(sectorNewsListRef.current, "up")} />
-                      <SectorScrollButton
-                        dir="down"
-                        disabled={!canSectorDown}
-                        onClick={() => scrollListBy(sectorNewsListRef.current, "down")}
-                      />
+                      <SectorScrollButton dir="down" disabled={!canSectorDown} onClick={() => scrollListBy(sectorNewsListRef.current, "down")} />
                     </div>
                   </div>
 
@@ -1304,16 +690,9 @@ const Home = () => {
                     ) : sectorNews.length === 0 ? (
                       <div className="rounded-2xl bg-white p-3 text-sm text-neutral-600 ring-1 ring-black/5">해당 섹터의 뉴스가 없습니다.</div>
                     ) : (
-                      <div
-                        ref={sectorNewsListRef}
-                        className={classNames(
-                          "mt-1 overflow-y-auto pr-1",
-                          // ✅ 섹션 전체가 너무 길어보여서 세로를 살짝 축소(가로는 유지)
-                          "h-[210px] sm:h-[230px] lg:h-[240px]"
-                        )}
-                      >
+                      <div ref={sectorNewsListRef} className={classNames("mt-1 overflow-y-auto pr-1", "h-[210px] sm:h-[230px] lg:h-[240px]")}>
                         {sectorNews.slice(0, 30).map((row) => (
-                          <SectorNewsRowItem key={row.id} row={row} />
+                          <SectorNewsRowItem key={row.id} row={row} onOpen={openDetail} />
                         ))}
                       </div>
                     )}
@@ -1328,9 +707,27 @@ const Home = () => {
         <div className="mt-6">
           <SectionTitle title="오늘의 증시" />
           <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <MarketMoversCard title="코스닥" marketLabel="KOSDAQ" topGainer={kosdaqTopGainer} topLoser={kosdaqTopLoser} />
-            <MarketMoversCard title="코스피" marketLabel="KOSPI" topGainer={kospiTopGainer} topLoser={kospiTopLoser} />
-            <MarketMoversCard title="나스닥" marketLabel="NASDAQ" topGainer={nasdaqTopGainer} topLoser={nasdaqTopLoser} />
+            <MarketMoversCard
+              title="코스닥"
+              marketLabel="KOSDAQ"
+              topGainer={kosdaqTopGainer}
+              topLoser={kosdaqTopLoser}
+              sessionStatus={sessions?.KOSDAQ?.status}
+            />
+            <MarketMoversCard
+              title="코스피"
+              marketLabel="KOSPI"
+              topGainer={kospiTopGainer}
+              topLoser={kospiTopLoser}
+              sessionStatus={sessions?.KOSPI?.status}
+            />
+            <MarketMoversCard
+              title="나스닥"
+              marketLabel="NASDAQ"
+              topGainer={nasdaqTopGainer}
+              topLoser={nasdaqTopLoser}
+              sessionStatus={sessions?.NASDAQ?.status}
+            />
           </div>
         </div>
       </div>

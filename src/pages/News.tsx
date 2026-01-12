@@ -24,9 +24,7 @@ const News = () => {
     const displayKeywords = keywords.slice(0, 3);
 
     const getNewsData = async (keyword?: string, market: string = 'all') => {
-        // [Frontend Trick] '전체' 탭을 선택해도 '국내' 뉴스와 동일한 결과를 보여주기 위해
-        // API 호출 시에는 'all' 대신 'domestic'을 사용합니다.
-        const apiMarket = market === 'all' ? 'domestic' : market;
+        const apiMarket = market;
 
         const params = new URLSearchParams();
         if (keyword) params.append('keyword', keyword);
