@@ -15,7 +15,7 @@ const LoginGateOverlay = ({
 
     return (
         <div
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center"
+            className="absolute inset-0 z-40 flex flex-col items-center justify-center pt-20"
             style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.6)',
                 backdropFilter: 'blur(1.5px)',

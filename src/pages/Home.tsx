@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HomeLogo from "../assets/logo.png";
+
 
 import type { TrendTab, TrendKeywordsResponse, SectorItem, TodayMarketResponse, SectorNewsRow, NewsDetailItem } from "./home/types";
 import { getAccessToken, classNames } from "./home/utils";
@@ -441,25 +443,130 @@ const Home = () => {
   }, [sectorItems.length]);
 
   return (
-    <div className="min-h-screen bg-[#f6f7f9]">
+    <div className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-6">
         {/* ✅ 뉴스 분석 모달 */}
         <NewsInsightModal open={detailOpen} item={detailItem} onClose={closeDetail} />
 
         {/* 상단 채팅 입력 */}
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="inline-flex items-center rounded-full bg-[#216BFF]/10 px-3 py-1 text-xs font-semibold text-[#216BFF]">
-                AI에게 물어보세요
-              </div>
+        {/* Chatbot Section with Gradient */}
+        <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#E2F1FF] via-[#EEF2FF] to-[#FCE7F3] p-8 py-16 text-center ring-1 ring-black/5 sm:px-12">
+          {/* Header */}
+          <div className="mx-auto flex max-w-2xl flex-col items-center justify-center">
+            <div className="mb-2 flex items-center gap-2">
+              {/* Logo Icon Placeholder: Terminal Icon */}
+              {/* Logo Icon Placeholder: Terminal Icon */}
+              <img src={HomeLogo} alt="DecodeX Logo" className="w-8 h-8 object-contain" />
+              <h1 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">DecodeX</h1>
             </div>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-600 sm:text-base">
+              초보 투자자를 위한 뉴스 해석 AI{"\n"}복잡한 경제 뉴스를 한눈에 이해하세요.
+            </p>
+          </div>
 
-            <div className="flex gap-2">
-              <div className="flex-1 rounded-2xl bg-[#f7f8fa] p-1 ring-1 ring-black/5">
+          {/* Feature Cards */}
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              {
+                label: "오늘의 뉴스 해석",
+                color: "text-[#06B6D4]",
+                bg: "bg-[#06B6D4]",
+                icon: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "투자 판단 도움",
+                color: "text-[#8B5CF6]",
+                bg: "bg-[#8B5CF6]",
+                icon: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                    <polyline points="16 7 22 7 22 13" />
+                  </svg>
+                ),
+              },
+              {
+                label: "용어 & 맥락 설명",
+                color: "text-[#F59E0B]",
+                bg: "bg-[#F59E0B]",
+                icon: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "용어 & 맥락 설명",
+                color: "text-[#EC4899]",
+                bg: "bg-[#EC4899]",
+                icon: (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                ),
+              },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="group relative flex flex-col items-start justify-between gap-3 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-md"
+              >
+                {/* Gradient Blur Effect on Icon */}
+                <div className={`absolute -right-4 -top-4 h-16 w-16 rounded-full blur-2xl opacity-20 ${item.bg}`} />
+                <div className={`rounded-xl p-2.5 bg-neutral-50 ${item.color} ring-1 ring-black/5`}>{item.icon}</div>
+                <span className="text-sm font-semibold text-neutral-700 group-hover:text-neutral-900">{item.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className="mx-auto mt-10 max-w-2xl">
+            <div className="relative group">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-200/50 via-purple-200/50 to-pink-200/50 blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative flex items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-shadow focus-within:ring-2 focus-within:ring-[#216BFF]/20 hover:shadow-md">
                 <input
-                  className="w-full rounded-[14px] bg-transparent px-4 py-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:ring-2 focus:ring-[#216BFF]/25"
-                  placeholder="예) 오늘 코스닥 급등주 중 리스크 요인 알려줘"
+                  type="text"
                   value={chatDraft}
                   onChange={(e) => setChatDraft(e.target.value)}
                   onKeyDown={(e) => {
@@ -468,36 +575,28 @@ const Home = () => {
                       goChatbot(chatDraft);
                     }
                   }}
+                  placeholder="“금리 인하 뉴스, 주식엔 어떤 영향이야?”"
+                  className="h-14 w-full bg-transparent px-6 text-base text-neutral-900 outline-none placeholder:text-neutral-400"
                 />
-              </div>
-
-              <button
-                type="button"
-                disabled={chatDraft.trim().length === 0}
-                className="rounded-2xl bg-[#216BFF] px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-[#216BFF]/20 hover:opacity-95 disabled:opacity-50"
-                onClick={() => {
-                  if (!getAccessToken()) {
-                    navigate("/login");
-                    return;
-                  }
-                  goChatbot(chatDraft);
-                }}
-              >
-                전송
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {["내 관심종목 뉴스 요약해줘", "오늘 시장 분위기 3줄 요약", "나스닥 프리마켓 급등 이유?", "급등주 리스크 체크리스트"].map((q) => (
                 <button
-                  key={q}
-                  type="button"
-                  onClick={() => goChatbot(q)}
-                  className="rounded-full bg-white px-3 py-2 text-sm font-medium text-neutral-700 ring-1 ring-black/5 hover:bg-[#216BFF]/5 hover:text-neutral-900"
+                  onClick={() => goChatbot(chatDraft)}
+                  className="mr-2 rounded-full p-2.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-[#216BFF]"
                 >
-                  {q}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-6 w-6"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
                 </button>
-              ))}
+              </div>
             </div>
           </div>
         </div>
@@ -550,8 +649,8 @@ const Home = () => {
                               ? "bg-white/15 text-white"
                               : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                             : active
-                            ? "bg-white/15 text-white"
-                            : "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
+                              ? "bg-white/15 text-white"
+                              : "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
                         )}
                       >
                         {t.scope}

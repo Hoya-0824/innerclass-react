@@ -23,11 +23,12 @@ const GoogleLoginButton = ({ text = "Google로 계속하기" }: GoogleLoginButto
     };
 
     return (
-        <button onClick={handleGoogleLogin} className='w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md cursor-pointer shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200 gap-3 items-center'>
-            <img src={googleLogo} alt="google-logo" width={22} height={22} />
-            <span className="text-gray-700 font-medium text-sm">
-                {text}
-            </span>
+        <button
+            onClick={handleGoogleLogin}
+            className="w-full flex justify-center items-center gap-2 py-4 px-4 border border-gray-200 rounded-xl cursor-pointer shadow-sm text-sm font-bold text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 whitespace-nowrap"
+        >
+            <img src={googleLogo} alt="google-logo" className="w-5 h-5" />
+            {text}
         </button>
     )
 }

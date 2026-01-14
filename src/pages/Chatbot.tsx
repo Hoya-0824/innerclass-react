@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import LoginGateOverlay from "../components/Auth/LoginGateOverlay";
+import ChatbotLogo from "../assets/logo.png";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -25,8 +26,8 @@ type PromptTemplate = {
 type OnboardingProfile = {
   assetType: string;
   sectors: string[];
-  riskProfile: string; // "A" | "B" | "C"
-  knowledgeLevel: number; // 1~5
+  riskProfile: string;
+  knowledgeLevel: number;
 };
 
 function getAccessToken(): string | null {
@@ -36,15 +37,6 @@ function getAccessToken(): string | null {
 function authHeaders(): Record<string, string> {
   const token = getAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-function knowledgeLabel(level?: number) {
-  if (!level) return "미지정";
-  if (level <= 1) return "주린이";
-  if (level === 2) return "초보자";
-  if (level === 3) return "중급자";
-  if (level === 4) return "숙련자";
-  return "전문가";
 }
 
 async function fetchTemplates(): Promise<PromptTemplate[]> {
@@ -132,73 +124,6 @@ async function deleteSession(session_id: number): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete session");
 }
 
-const SummaryBar = ({
-  profile,
-  loading,
-}: {
-  profile: OnboardingProfile | null;
-  loading: boolean;
-}) => {
-  const sectors = profile?.sectors ?? [];
-
-  const chip = (cls: string) =>
-    `inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-medium ${cls}`;
-
-  const riskTone = (() => {
-    const code = profile?.riskProfile;
-    if (code === "A") return "bg-red-500/10 text-red-700 border border-red-500/20";
-    if (code === "B") return "bg-sky-500/10 text-sky-700 border border-sky-500/20";
-    if (code === "C") return "bg-emerald-500/10 text-emerald-700 border border-emerald-500/20";
-    return "bg-zinc-500/10 text-zinc-700 border border-zinc-500/20";
-  })();
-
-  const riskLabel = (() => {
-    const code = profile?.riskProfile;
-    if (code === "A") return "공격형";
-    if (code === "B") return "중립형";
-    if (code === "C") return "안정형";
-    return "미지정";
-  })();
-
-  return (
-    <div className="px-4 md:px-6 py-3 bg-white/70 backdrop-blur border-b border-zinc-200">
-      {loading ? (
-        <div className="flex flex-wrap gap-2">
-          <div className="h-6 w-24 rounded-full bg-zinc-200/70 animate-pulse" />
-          <div className="h-6 w-20 rounded-full bg-zinc-200/70 animate-pulse" />
-          <div className="h-6 w-28 rounded-full bg-zinc-200/70 animate-pulse" />
-        </div>
-      ) : !profile ? (
-        <div className="text-sm text-zinc-700">온보딩 정보가 없습니다.</div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={chip("bg-violet-500/10 text-violet-700 border border-violet-500/20")}>
-            {profile.assetType || "미지정"}
-          </span>
-          <span className={chip(riskTone)}>{riskLabel}</span>
-          <span className={chip("bg-zinc-500/10 text-zinc-700 border border-zinc-500/20")}>
-            Lv.{profile.knowledgeLevel} {knowledgeLabel(profile.knowledgeLevel)}
-          </span>
-          {sectors.length > 0 ? (
-            sectors.map((s) => (
-              <span
-                key={s}
-                className={chip("bg-zinc-500/10 text-zinc-700 border border-zinc-500/20")}
-              >
-                {s}
-              </span>
-            ))
-          ) : (
-            <span className={chip("bg-zinc-500/10 text-zinc-700 border border-zinc-500/20")}>
-              관심 섹터 없음
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
 function formatDateLabel(iso: string) {
   const d = new Date(iso);
   const today = new Date();
@@ -215,6 +140,13 @@ function formatDateLabel(iso: string) {
   return d.toLocaleDateString();
 }
 
+// Message Icon SVG for history items
+const MessageIcon = () => (
+  <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
 const Chatbot = () => {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [templateId, setTemplateId] = useState<number | null>(null);
@@ -226,19 +158,18 @@ const Chatbot = () => {
   const [nextPage, setNextPage] = useState(2);
 
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
 
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showChatView, setShowChatView] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Home에서 넘어온 draft 자동 전송(StrictMode 2회 실행 방지)
   const autoSentRef = useRef(false);
 
   const groupedSessions = useMemo(() => {
@@ -249,18 +180,14 @@ const Chatbot = () => {
       arr.push(s);
       groups.set(key, arr);
     }
-    // keep insertion order by iterating sessions already sorted from API (assumed recent-first)
     return Array.from(groups.entries());
   }, [sessions]);
 
   const loadProfile = async () => {
-    setProfileLoading(true);
     try {
       const p = await fetchOnboarding();
       setProfile(p);
-    } finally {
-      setProfileLoading(false);
-    }
+    } catch { }
   };
 
   const refreshSessions = async (selectNewest = false) => {
@@ -278,10 +205,11 @@ const Chatbot = () => {
     setHasMore(false);
     setNextPage(2);
     setMessages([]);
+    setShowChatView(true);
 
     try {
       const r = await fetchSessionMessages({ session_id: sid, page: 1, page_size: 50 });
-      const ordered = [...(r.messages ?? [])].reverse(); // UI: oldest-first
+      const ordered = [...(r.messages ?? [])].reverse();
       setMessages(ordered.map((m) => ({ role: m.role, content: m.content })));
       setHasMore(Boolean(r.has_next));
       setNextPage(2);
@@ -298,7 +226,8 @@ const Chatbot = () => {
     setMessages([]);
     setHasMore(false);
     setNextPage(2);
-    textareaRef.current?.focus();
+    setShowChatView(false);
+    inputRef.current?.focus();
   };
 
   const onLoadMore = async () => {
@@ -318,12 +247,11 @@ const Chatbot = () => {
   };
 
   const onDeleteSession = async (sid: number) => {
-    const ok = window.confirm("이 대화를 삭제하시겠습니까? (최근 3일 내 로그만 보관됩니다)");
+    const ok = window.confirm("이 대화를 삭제하시겠습니까?");
     if (!ok) return;
 
     try {
       await deleteSession(sid);
-      // 삭제한 세션이 현재 열려있는 세션이면 새 대화 상태로
       if (sessionId === sid) {
         onNewChat();
       }
@@ -372,6 +300,7 @@ const Chatbot = () => {
 
     setError(null);
     setLoading(true);
+    setShowChatView(true);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -390,7 +319,6 @@ const Chatbot = () => {
         controller.signal
       );
 
-      // 첫 메시지로 서버가 세션 생성한 경우 → 목록 갱신
       if (!sessionId) {
         setSessionId(session_id);
         await refreshSessions(false);
@@ -399,7 +327,7 @@ const Chatbot = () => {
       }
 
       setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
-      textareaRef.current?.focus();
+      inputRef.current?.focus();
     } catch (e: any) {
       if (e?.name === "AbortError") return;
       setError(e?.message ?? "Chat failed");
@@ -408,41 +336,35 @@ const Chatbot = () => {
     }
   }, [input, loading, sessionId, templateId]);
 
-  // Home에서 넘어온 chatbot_draft 자동 전송
   useEffect(() => {
     if (autoSentRef.current) return;
 
     const draft = sessionStorage.getItem("chatbot_draft")?.trim() ?? "";
-    const flag = sessionStorage.getItem("chatbot_autosend"); // Home에서 같이 저장하는 걸 권장
+    const flag = sessionStorage.getItem("chatbot_autosend");
 
-    // flag가 없더라도 draft가 있으면 보내고 싶다면: flag 체크를 제거하세요.
     if (!draft) return;
-
-    // (선택) flag를 쓰는 경우
     if (flag !== null && flag !== "1") return;
 
     if (!getAccessToken()) {
-      // 로그인 없으면 입력창에만 채워주고 보내진 않음
       setInput(draft);
       sessionStorage.removeItem("chatbot_draft");
       sessionStorage.removeItem("chatbot_autosend");
-      requestAnimationFrame(() => textareaRef.current?.focus());
+      requestAnimationFrame(() => inputRef.current?.focus());
       autoSentRef.current = true;
       return;
     }
 
     autoSentRef.current = true;
 
-    // 소비
     sessionStorage.removeItem("chatbot_draft");
     sessionStorage.removeItem("chatbot_autosend");
 
-    // 즉시 전송 (input 상태를 거치지 않고 직접 payload로)
     (async () => {
       if (loading) return;
 
       setError(null);
       setLoading(true);
+      setShowChatView(true);
 
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -468,7 +390,7 @@ const Chatbot = () => {
         }
 
         setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
-        requestAnimationFrame(() => textareaRef.current?.focus());
+        requestAnimationFrame(() => inputRef.current?.focus());
       } catch (e: any) {
         if (e?.name === "AbortError") return;
         setError(e?.message ?? "Chat failed");
@@ -476,54 +398,94 @@ const Chatbot = () => {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId]); // templateId가 정해진 뒤에 자동전송되도록(초기 템플릿 로딩 대응)
+  }, [templateId]);
 
-  const onKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void onSend();
     }
   };
 
-  useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "0px";
-    const next = Math.min(160, Math.max(52, el.scrollHeight));
-    el.style.height = `${next}px`;
-  }, [input]);
+  // Feature cards data
+  const featureCards = [
+    {
+      icon: (
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)' }}>
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      ),
+      title: "오늘의 뉴스 해석",
+      description: "금리·환율·증시 뉴스를\n초보자 눈높이로 정리",
+      bgColor: "bg-blue-50/70",
+    },
+    {
+      icon: (
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)' }}>
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+      ),
+      title: "투자 판단 도움",
+      description: "지금 상황에서\n리스크와 포인트 요약",
+      bgColor: "bg-purple-50/70",
+    },
+    {
+      icon: (
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 100%)' }}>
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+      ),
+      title: "용어 & 맥락 설명",
+      description: "경제 용어, 배경,\n왜 이런 반응이 나오는지",
+      bgColor: "bg-amber-50/70",
+    },
+  ];
 
   return (
-    <div className="min-h-[calc(100vh-48px)] bg-zinc-50">
-      <div className="max-w-[1180px] mx-auto px-3 md:px-6 py-6 md:py-10">
-        <div className="rounded-[22px] border border-zinc-200 bg-white shadow-[0_6px_30px_rgba(16,24,40,0.08)] overflow-hidden relative">
-          <div className="flex h-[760px]">
-            {/* Sidebar */}
-            <aside className="w-[280px] shrink-0 border-r border-zinc-200 bg-white">
-              <div className="h-14 px-3 flex items-center justify-between border-b border-zinc-200">
-                <div className="text-sm font-semibold text-zinc-900">히스토리</div>
+    <div className="">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 pb-8 relative min-h-[calc(100vh-120px)]">
+        <div className="flex gap-6 relative">
+          {/* Left Sidebar */}
+          <aside className="w-[260px] shrink-0">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden">
+              {/* New Chat Button */}
+              <div className="p-4">
                 <button
-                  className="text-xs px-2.5 py-2 rounded-xl bg-zinc-900 text-white hover:opacity-95"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full cursor-pointer text-white text-sm font-semibold transition-all duration-200 hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)' }}
                   onClick={onNewChat}
                   type="button"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
                   새 채팅
                 </button>
               </div>
 
-              <div className="p-2 overflow-auto h-[calc(760px-56px)]">
+              {/* History Section */}
+              <div className="px-4 pb-2">
+                <div className="text-sm font-semibold text-gray-700 mb-3">히스토리</div>
+              </div>
+
+              <div className="px-2 pb-4 max-h-[500px] overflow-auto">
                 {!getAccessToken() ? (
-                  <div className="text-xs text-zinc-500 px-2 py-3">
+                  <div className="text-xs text-gray-500 px-2 py-3">
                     로그인 후 히스토리를 볼 수 있습니다.
                   </div>
                 ) : sessions.length === 0 ? (
-                  <div className="text-xs text-zinc-500 px-2 py-3">대화 내역이 없습니다.</div>
+                  <div className="text-xs text-gray-500 px-2 py-3">대화 내역이 없습니다.</div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {groupedSessions.map(([label, items]) => (
                       <div key={label}>
-                        <div className="px-2 mb-2 text-[11px] font-medium text-zinc-500">
+                        <div className="px-2 mb-2 text-xs font-medium text-gray-500">
                           {label}
                         </div>
 
@@ -534,24 +496,22 @@ const Chatbot = () => {
                               <div
                                 key={s.id}
                                 className={[
-                                  "group flex items-center gap-2 rounded-xl px-2 py-2 cursor-pointer",
-                                  active ? "bg-zinc-100" : "hover:bg-zinc-50",
+                                  "group flex items-center gap-2 rounded-xl px-3 py-2.5 cursor-pointer transition-colors",
+                                  active ? "bg-gray-100" : "hover:bg-gray-50",
                                 ].join(" ")}
                                 onClick={() => void onSelectSession(s.id)}
                                 role="button"
                                 tabIndex={0}
                               >
+                                <MessageIcon />
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-[13px] text-zinc-900 truncate">
+                                  <div className="text-sm text-gray-800 truncate">
                                     {s.title?.trim() ? s.title : `대화 ${s.id}`}
-                                  </div>
-                                  <div className="text-[11px] text-zinc-500 truncate">
-                                    {new Date(s.updated_at || s.created_at).toLocaleString()}
                                   </div>
                                 </div>
 
                                 <button
-                                  className="opacity-0 group-hover:opacity-100 text-[11px] px-2 py-1 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
+                                  className="opacity-0 group-hover:opacity-100 text-xs px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 transition-all"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void onDeleteSession(s.id);
@@ -570,152 +530,165 @@ const Chatbot = () => {
                   </div>
                 )}
               </div>
-            </aside>
+            </div>
+          </aside>
 
-            {/* Main */}
-            <section className="flex-1 flex flex-col">
-              {/* Top bar */}
-              <div className="h-14 px-4 flex items-center justify-between bg-white border-b border-zinc-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-zinc-900 text-white flex items-center justify-center">
-                    <span className="text-[12px] font-semibold">GPT</span>
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden flex-1 flex flex-col min-h-[600px]">
+              {!showChatView && messages.length === 0 ? (
+                /* Welcome View */
+                <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
+                  {/* Logo */}
+                  <div className="flex justify-center items-center gap-3 mb-4">
+                    <img src={ChatbotLogo} alt="DecodeX Logo" width={48} height={48} className="object-contain" />
+                    <span className="text-5xl font-extrabold text-gray-900 tracking-tight">DecodeX</span>
                   </div>
-                  <div className="leading-tight">
-                    <div className="text-sm font-semibold text-zinc-900">주식봇</div>
-                    <div className="text-[11px] text-zinc-500">
-                      {loading ? "응답 생성 중" : "Online"}
-                    </div>
+
+                  {/* Subtitle */}
+                  <div className="text-center mb-12">
+                    <p className="text-lg font-semibold text-gray-900">초보 투자자를 위한 뉴스 해석 AI</p>
+                    <p className="text-gray-600">복잡한 경제 뉴스를 한눈에 이해하세요</p>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {templates.length > 0 && (
-                    <select
-                      className="text-xs px-2.5 py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200/70 outline-none border border-zinc-200"
-                      value={templateId ?? ""}
-                      onChange={(e) => setTemplateId(Number(e.target.value))}
-                      disabled={loading}
-                      title="프롬프트 템플릿"
-                    >
-                      {templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <SummaryBar profile={profile} loading={profileLoading} />
-
-              {/* Chat area */}
-              <div className="flex-1 bg-white overflow-hidden">
-                <div className="h-full overflow-auto px-4 md:px-6 py-5 space-y-4">
-                  {hasMore && (
-                    <div className="flex justify-center">
-                      <button
-                        className="text-xs px-3 py-2 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 disabled:opacity-50"
-                        onClick={() => void onLoadMore()}
-                        disabled={loading || loadingMore}
-                        type="button"
+                  {/* Feature Cards */}
+                  <div className="flex gap-4 mb-16 flex-wrap justify-center">
+                    {featureCards.map((card, idx) => (
+                      <div
+                        key={idx}
+                        className={`${card.bgColor} rounded-2xl p-5 w-[180px] transition-transform hover:scale-105 cursor-pointer border border-white/50`}
                       >
-                        {loadingMore ? "불러오는 중…" : "이전 대화 더 보기"}
+                        <div className="mb-3">{card.icon}</div>
+                        <div className="text-sm font-semibold text-gray-900 mb-1">{card.title}</div>
+                        <div className="text-xs text-gray-600 whitespace-pre-line">{card.description}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="w-full max-w-2xl">
+                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-5 py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm bg-transparent"
+                        placeholder='"금리 인하 뉴스, 주식엔 어떤 영향이야?"'
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        disabled={loading}
+                      />
+                      <button
+                        onClick={() => void onSend()}
+                        disabled={loading || input.trim().length === 0}
+                        className="ml-3 p-2 rounded-full hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                      >
+                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                       </button>
                     </div>
-                  )}
 
-                  {messages.length === 0 && !loading && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[82%] rounded-2xl bg-zinc-50 text-zinc-900 px-4 py-3 text-sm border border-zinc-200">
-                        관심 있는 종목이나 시장 상황을 물어보세요.
-                        <div className="mt-1 text-xs text-zinc-500">
-                          예) “오늘 삼성전자 이슈 뭐야?” / “미장 반도체 섹터 흐름 요약”
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {messages.map((m, idx) => {
-                    const isUser = m.role === "user";
-                    return (
-                      <div key={idx} className={isUser ? "flex justify-end" : "flex justify-start"}>
-                        <div
-                          className={[
-                            "max-w-[82%] px-4 py-3 text-sm whitespace-pre-wrap",
-                            isUser
-                              ? "rounded-2xl rounded-tr-md bg-zinc-900 text-white"
-                              : "rounded-2xl rounded-tl-md bg-white text-zinc-900 border border-zinc-200",
-                          ].join(" ")}
-                        >
-                          {m.content}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {loading && (
-                    <div className="flex justify-start">
-                      <div className="max-w-[82%] rounded-2xl rounded-tl-md bg-white text-zinc-900 border border-zinc-200 px-4 py-3 text-sm">
-                        답변 생성 중…
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="flex justify-center">
-                      <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2 whitespace-pre-wrap">
+                    {error && (
+                      <div className="mt-3 text-center text-sm text-red-600 bg-red-50 py-2 px-4 rounded-lg">
                         {error}
                       </div>
-                    </div>
-                  )}
-
-                  <div ref={scrollRef} />
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Chat View */
+                <>
+                  {/* Chat Messages */}
+                  <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                    {hasMore && (
+                      <div className="flex justify-center">
+                        <button
+                          className="text-xs px-3 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-50"
+                          onClick={() => void onLoadMore()}
+                          disabled={loading || loadingMore}
+                          type="button"
+                        >
+                          {loadingMore ? "불러오는 중…" : "이전 대화 더 보기"}
+                        </button>
+                      </div>
+                    )}
 
-              {/* Input bar */}
-              <div className="border-t border-zinc-200 bg-white px-4 md:px-6 py-4">
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 rounded-2xl border border-zinc-200 bg-white px-3 py-2 focus-within:ring-2 focus-within:ring-zinc-200">
-                    <textarea
-                      ref={textareaRef}
-                      className="w-full resize-none text-sm leading-5 outline-none bg-transparent"
-                      placeholder="메시지 입력 (Enter 전송, Shift+Enter 줄바꿈)"
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={onKeyDown}
-                      disabled={loading}
-                      style={{ height: 52 }}
-                    />
-                    <div className="mt-1 flex items-center justify-between">
-                      <div className="text-[11px] text-zinc-400">Shift+Enter 줄바꿈</div>
-                      <div className="text-[11px] text-zinc-400">{input.trim().length}/2000</div>
-                    </div>
+                    {messages.map((m, idx) => {
+                      const isUser = m.role === "user";
+                      return (
+                        <div key={idx} className={isUser ? "flex justify-end" : "flex justify-start"}>
+                          <div
+                            className={[
+                              "max-w-[75%] px-4 py-3 text-sm whitespace-pre-wrap",
+                              isUser
+                                ? "rounded-2xl rounded-tr-md bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
+                                : "rounded-2xl rounded-tl-md bg-gray-100 text-gray-900",
+                            ].join(" ")}
+                          >
+                            {m.content}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {loading && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[75%] rounded-2xl rounded-tl-md bg-gray-100 text-gray-900 px-4 py-3 text-sm">
+                          <div className="flex gap-1">
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="flex justify-center">
+                        <div className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2 whitespace-pre-wrap">
+                          {error}
+                        </div>
+                      </div>
+                    )}
+
+                    <div ref={scrollRef} />
                   </div>
 
-                  <button
-                    className="h-[52px] px-4 rounded-2xl bg-zinc-900 text-white text-sm disabled:opacity-50 hover:opacity-95"
-                    onClick={() => void onSend()}
-                    disabled={loading || input.trim().length === 0}
-                    type="button"
-                  >
-                    전송
-                  </button>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* Login Gate Overlay for unauthenticated users */}
-          {!getAccessToken() && (
-            <LoginGateOverlay message={"로그인하고\n나만의 AI 상담을 받아보세요!"} />
-          )}
+                  {/* Chat Input Bar */}
+                  <div className="border-t border-gray-100 bg-white/50 px-6 py-4">
+                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-5 py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm bg-transparent"
+                        placeholder="메시지를 입력하세요..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={onKeyDown}
+                        disabled={loading}
+                      />
+                      <button
+                        onClick={() => void onSend()}
+                        disabled={loading || input.trim().length === 0}
+                        className="ml-3 p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-40 transition-all"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </main>
         </div>
 
-        <div className="mt-3 text-[11px] text-zinc-500 text-center">
-          본 서비스는 투자자문이 아닌 정보 제공 목적입니다. 최종 투자 판단은 본인 책임입니다.
-        </div>
+        {/* Login Gate Overlay for unauthenticated users */}
+        {!getAccessToken() && (
+          <LoginGateOverlay message={"로그인하고\n나만의 AI 상담을 받아보세요!"} />
+        )}
       </div>
     </div>
   );
