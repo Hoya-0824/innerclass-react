@@ -1,13 +1,47 @@
 // src/pages/home/components/TrendNewsCarousel.tsx
-import { classNames, getHost } from "../utils";
-import type { TrendNewsItem, NewsDetailItem } from "../types";
+import { getHost } from "../utils";
+import type { TrendNewsItem } from "../types";
+
+import type { NewsItem as ModalNewsItem } from "../../../data/newsMockData";
+
+function formatKSTForModal(dateLike?: string) {
+  if (!dateLike) return "날짜 미상";
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return String(dateLike);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+function toModalItemFromTrend(n: TrendNewsItem): ModalNewsItem {
+  const host = getHost(n.link);
+
+  return {
+    id: n.id, // ✅ TrendKeywordNews.id 그대로 전달 (NewsDetailModal 내부에서 summary API 호출 구조면, 서버에서 trend용 summary도 지원해야 함)
+    title: n.title,
+    summary: n.summary,
+    date: formatKSTForModal(n.published_at),
+    tags: [
+      host || "news",
+      n.related_stock_name ? `관련: ${n.related_stock_name}` : "",
+      n.related_stock_code ? `코드: ${n.related_stock_code}` : "",
+    ].filter(Boolean),
+    imageUrl:
+      n.image_url ||
+      "https://images.unsplash.com/photo-1611974765270-ca1258822981?w=800&auto=format&fit=crop",
+    originUrl: n.link,
+  } as ModalNewsItem;
+}
 
 export function TrendNewsCard({
   item,
-  onOpen,
+  onOpenModal,
 }: {
   item: TrendNewsItem;
-  onOpen: (detail: NewsDetailItem) => void;
+  onOpenModal: (modalItem: ModalNewsItem) => void;
 }) {
   const host = getHost(item.link);
   const hasImg = Boolean(item.image_url);
@@ -15,29 +49,15 @@ export function TrendNewsCard({
   return (
     <button
       type="button"
-      onClick={() =>
-        onOpen({
-          id: item.id,                 // ✅ TrendKeywordNews.id
-          analysisSource: "reco",      // ✅ 핵심: reco 분석 API 사용
-          title: item.title,
-          summary: item.summary,
-          imageUrl: item.image_url || undefined,
-          date: item.published_at,
-          originUrl: item.link,
-          tags: [
-            host || "news",
-            item.related_stock_name ? `관련: ${item.related_stock_name}` : "",
-            item.related_stock_code ? `코드: ${item.related_stock_code}` : "",
-          ].filter(Boolean),
-          related: { name: item.related_stock_name, code: item.related_stock_code },
-        })
-      }
+      onClick={() => onOpenModal(toModalItemFromTrend(item))}
       className="group w-full overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition-shadow hover:shadow-md"
+      title={item.title}
+      aria-label={`트렌드 뉴스 상세 보기: ${item.title}`}
     >
       <div className="relative aspect-[16/9] bg-neutral-100">
         {hasImg ? (
           <img
-            src={item.image_url}
+            src={item.image_url as string}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
@@ -50,13 +70,21 @@ export function TrendNewsCard({
       </div>
 
       <div className="p-3">
-        <div className="line-clamp-2 text-sm font-semibold text-neutral-900">{item.title}</div>
-        <div className="mt-2 line-clamp-2 text-xs text-neutral-600">{item.summary}</div>
+        <div className="line-clamp-2 text-sm font-semibold text-neutral-900">
+          {item.title}
+        </div>
+        <div className="mt-2 line-clamp-2 text-xs text-neutral-600">
+          {item.summary}
+        </div>
 
         <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
           {host ? <span className="truncate">{host}</span> : null}
-          {host && item.published_at ? <span className="text-neutral-300">•</span> : null}
-          {item.published_at ? <span className="shrink-0">{item.published_at}</span> : null}
+          {host && item.published_at ? (
+            <span className="text-neutral-300">•</span>
+          ) : null}
+          {item.published_at ? (
+            <span className="shrink-0">{item.published_at}</span>
+          ) : null}
         </div>
       </div>
     </button>
@@ -87,10 +115,12 @@ export function CarouselArrowButton({
       aria-label={dir === "left" ? "이전" : "다음"}
       disabled={disabled}
       onClick={onClick}
-      className={classNames(base, pos, state)}
+      className={`${base} ${pos} ${state}`}
     >
       <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#216BFF]/10">
-        <span className="text-xl leading-none text-neutral-800">{dir === "left" ? "‹" : "›"}</span>
+        <span className="text-xl leading-none text-neutral-800">
+          {dir === "left" ? "‹" : "›"}
+        </span>
       </span>
     </button>
   );
