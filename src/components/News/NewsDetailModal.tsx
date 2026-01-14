@@ -4,6 +4,13 @@ import type { NewsItem } from '../../data/newsMockData';
 import type { NewsAnalysis } from '../../types/newsSummary';
 import api from '../../lib/axios';
 
+// 캐릭터 아바타 및 아이콘 이미지
+import woman1Avatar from '../../assets/woman_1.svg';
+import woman2Avatar from '../../assets/woman_2.svg';
+import aiAvatar from '../../assets/ai.svg';
+import positiveIcon from '../../assets/positive.svg';
+import warningIcon from '../../assets/warning.svg';
+
 interface NewsDetailModalProps {
     item: NewsItem;
     onClose: () => void;
@@ -151,9 +158,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
 
                     {/* 핵심 요약 (Bullet Points) */}
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-5 mb-6">
-                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="text-lg">📌</span> 핵심 요약
-                        </h3>
+                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">핵심 요약</h3>
                         {isLoading ? (
                             <SkeletonBlock lines={3} />
                         ) : analysis ? (
@@ -173,137 +178,145 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                     </div>
 
                     {/* 무슨 말이야? Section */}
-                    <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="text-lg">🤔</span> 무슨 말이야?
-                        </h3>
-                        {isLoading ? (
-                            <SkeletonBlock lines={2} />
-                        ) : analysis ? (
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                {analysis.what_is_this.map((item, idx) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                        <span className="text-gray-400">•</span>
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-gray-600">{item.summary}</p>
-                        )}
+                    <div className="bg-gray-50 rounded-2xl p-5 mb-6">
+                        <div className="flex items-start gap-4">
+                            <img src={woman1Avatar} alt="캐릭터" className="w-25 h-25 flex-shrink-0" />
+                            <div className="flex-1">
+                                <span className="inline-block bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-1.5 rounded-full mb-3">
+                                    무슨 말이야?
+                                </span>
+                                {isLoading ? (
+                                    <SkeletonBlock lines={2} />
+                                ) : analysis ? (
+                                    <ul className="space-y-1.5 text-sm text-gray-700">
+                                        {analysis.what_is_this.map((item, idx) => (
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="text-gray-400 mt-1">•</span>
+                                                <span>{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-gray-600">{item.summary}</p>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* 이게 왜 중요해? Section */}
-                    <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="text-lg">💡</span> 이게 왜 중요해?
-                        </h3>
-                        {isLoading ? (
-                            <SkeletonBlock lines={3} />
-                        ) : analysis ? (
-                            <ul className="space-y-2 text-sm text-gray-600">
-                                {analysis.why_important.map((item, idx) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                        <span className="text-gray-400">•</span>
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
+                    <div className="bg-gray-50 rounded-2xl p-5 mb-6">
+                        <div className="flex items-start gap-4">
+                            <img src={woman2Avatar} alt="캐릭터" className="w-25 h-25 flex-shrink-0" />
+                            <div className="flex-1">
+                                <span className="inline-block bg-orange-400 text-white text-sm font-bold px-4 py-1.5 rounded-full mb-3">
+                                    이게 왜 중요해?
+                                </span>
+                                {isLoading ? (
+                                    <SkeletonBlock lines={3} />
+                                ) : analysis ? (
+                                    <ul className="space-y-1.5 text-sm text-gray-700">
+                                        {analysis.why_important.map((item, idx) => (
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="text-gray-400 mt-1">•</span>
+                                                <span>{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : null}
+                            </div>
+                        </div>
                     </div>
 
                     {/* 이 뉴스가 주식에 주는 영향은? Section */}
                     <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="text-lg">📊</span> 이 뉴스가 주식에 주는 영향은?
+                        <h3 className="font-bold text-gray-900 mb-4 text-base">
+                            이 뉴스가 주식에 주는 영향은?
                         </h3>
 
                         {isLoading ? (
                             <SkeletonBlock lines={4} />
                         ) : analysis ? (
-                            <>
+                            <div className="grid grid-cols-2 gap-4">
                                 {/* 긍정적인 점 */}
-                                <div className="mb-4">
-                                    <h4 className="text-sm font-semibold text-green-600 mb-2 flex items-center gap-1">
-                                        <span>✅</span> 긍정적인 점
-                                    </h4>
-                                    <ul className="space-y-1 text-sm text-gray-600 ml-5">
+                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                                    <img src={positiveIcon} alt="긍정" className="w-7 h-7 mb-1" />
+                                    <h4 className="text-sm font-semibold text-green-600">긍정적인 점</h4>
+                                    <ul className="space-y-1.5 text-sm text-gray-600">
                                         {analysis.stock_impact.positives.map((item, idx) => (
-                                            <li key={idx}>• {item}</li>
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="text-green-400 mt-1">•</span>
+                                                <span>{item}</span>
+                                            </li>
                                         ))}
                                     </ul>
                                 </div>
 
                                 {/* 주의할 점 */}
-                                <div>
-                                    <h4 className="text-sm font-semibold text-amber-600 mb-2 flex items-center gap-1">
-                                        <span>⚠️</span> 주의할 점
-                                    </h4>
-                                    <ul className="space-y-1 text-sm text-gray-600 ml-5">
+                                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-100">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <img src={warningIcon} alt="주의" className="w-6 h-6" />
+                                        <h4 className="text-sm font-semibold text-orange-500">주의할 점</h4>
+                                    </div>
+                                    <ul className="space-y-1.5 text-sm text-gray-600">
                                         {analysis.stock_impact.warnings.map((item, idx) => (
-                                            <li key={idx}>• {item}</li>
+                                            <li key={idx} className="flex items-start gap-2">
+                                                <span className="text-orange-400 mt-1">•</span>
+                                                <span>{item}</span>
+                                            </li>
                                         ))}
                                     </ul>
                                 </div>
-                            </>
+                            </div>
                         ) : null}
                     </div>
 
                     {/* AI 투자 시그널 Section */}
-                    <div className="bg-gray-50 rounded-xl p-5 mb-6">
-                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <span className="text-lg">🤖</span> AI 투자 시그널
-                        </h3>
-                        <p className="text-xs text-gray-500 mb-4">ⓘ 이 정보는 투자 권유가 아니라 판단 보조용 분석이에요.</p>
+                    <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <img src={aiAvatar} alt="AI" className="w-12 h-12" />
+                            <div>
+                                <h3 className="font-bold text-gray-900 text-base">AI 투자 시그널</h3>
+                                <p className="text-xs text-gray-500">ⓘ 이 정보는 투자 권유가 아니라 판단 보조용 분석이에요.</p>
+                            </div>
+                        </div>
 
                         {isLoading ? (
                             <LoadingSpinner />
                         ) : analysis ? (
                             <>
-                                {/* 감정 점수 */}
-                                {/* <div className="flex items-center justify-between mb-4">
-                                    <span className="text-sm font-medium text-gray-700">🔥 감정 점수</span>
-                                    <span className="text-lg font-bold text-gray-900">{analysis.sentiment_score}점</span>
-                                </div> */}
-
-                                {/* 관련 종목 */}
-                                {/* <div className="mb-4">
-                                    <span className="text-sm font-medium text-gray-700 block mb-2">⭐ 관련 종목</span>
-                                    <div className="flex gap-2">
-                                        {item.tags?.map((tag, idx) => (
-                                            <span key={idx} className="bg-white border border-gray-200 text-gray-700 text-sm px-3 py-1 rounded-lg">{tag}</span>
-                                        ))}
-                                    </div>
-                                </div> */}
-
                                 {/* 전략 가이드 */}
-                                <div className="mb-4">
-                                    <span className="text-sm font-medium text-gray-700 block mb-2">🧭 전략 가이드</span>
-                                    <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
-                                        <div className="grid grid-cols-2 border-b border-gray-200">
-                                            <div className="p-3 font-medium text-sm text-gray-700 border-r border-gray-200">단기 관점</div>
+                                <div className="bg-white rounded-xl overflow-hidden border border-gray-200 mb-4">
+                                    <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+                                        <span className="text-sm font-semibold text-gray-800">전략 가이드</span>
+                                    </div>
+                                    <div className="divide-y divide-gray-100">
+                                        <div className="grid grid-cols-[100px_1fr]">
+                                            <div className="p-3 bg-gray-50 font-medium text-sm text-gray-700 border-r border-gray-100">단기 관점</div>
                                             <div className="p-3 text-sm text-gray-600">
-                                                <p>{analysis.strategy_guide?.short_term || '정보 없음'}</p>
+                                                {analysis.strategy_guide?.short_term || '정보 없음'}
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2">
-                                            <div className="p-3 font-medium text-sm text-gray-700 border-r border-gray-200">장기 관점</div>
+                                        <div className="grid grid-cols-[100px_1fr]">
+                                            <div className="p-3 bg-gray-50 font-medium text-sm text-gray-700 border-r border-gray-100">장기 관점</div>
                                             <div className="p-3 text-sm text-gray-600">
-                                                <p>{analysis.strategy_guide?.long_term || '정보 없음'}</p>
+                                                {analysis.strategy_guide?.long_term || '정보 없음'}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* 주의사항 */}
-                                <div className="bg-amber-50 rounded-lg p-3">
-                                    <span className="text-sm font-medium text-amber-700 flex items-center gap-1 mb-1">
-                                        <span>⚠️</span> 주의사항
-                                    </span>
-                                    <p className="text-sm text-gray-600">
-                                        이 분석은 AI가 생성한 정보로 투자 결정의 참고 자료로만 활용하세요.<br />
-                                        실제 투자 결정 전 전문가 상담을 권장합니다.
-                                    </p>
+                                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-amber-500 text-lg">⚠️</span>
+                                        <div>
+                                            <span className="text-sm font-semibold text-amber-700 block mb-1">주의사항</span>
+                                            <p className="text-sm text-gray-600 leading-relaxed">
+                                                이 분석은 AI가 생성한 정보로 투자 결정의 참고 자료로만 활용하세요.<br />
+                                                실제 투자 결정 전 전문가 상담을 권장합니다.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </>
                         ) : null}

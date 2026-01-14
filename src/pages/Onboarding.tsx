@@ -15,17 +15,29 @@ interface StepProps {
 
 const Step1AssetType = ({ userData, updateData }: StepProps) => {
   const options = ["국내주식", "미국주식", "가상화폐", "ETF/원자재"];
+
+  const toggleAsset = (asset: string) => {
+    const current = userData.assetType;
+    if (current.includes(asset)) {
+      updateData(
+        "assetType",
+        current.filter((a) => a !== asset)
+      );
+    } else {
+      updateData("assetType", [...current, asset]);
+    }
+  };
+
   return (
     <div className="grid grid-cols-2 gap-4">
       {options.map((opt) => (
         <button
           key={opt}
-          onClick={() => updateData("assetType", opt)}
-          className={`p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-lg font-medium ${
-            userData.assetType === opt
-              ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
-              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
-          }`}
+          onClick={() => toggleAsset(opt)}
+          className={`p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-lg font-medium ${userData.assetType.includes(opt)
+            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
+            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
+            }`}
         >
           {opt}
         </button>
@@ -58,11 +70,10 @@ const Step2Sector = ({ userData, updateData }: StepProps) => {
           <button
             key={opt}
             onClick={() => toggleSector(opt)}
-            className={`px-4 py-2 rounded-full border cursor-pointer transition-all duration-200 ${
-              userData.sectors.includes(opt)
-                ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
-                : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400"
-            }`}
+            className={`px-4 py-2 rounded-full border cursor-pointer transition-all duration-200 ${userData.sectors.includes(opt)
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+              : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400"
+              }`}
           >
             {opt}
           </button>
@@ -112,8 +123,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
   const inferMarketParam = (): "KOSPI" | "NASDAQ" | "ALL" => {
     // DailyRankingSnapshot 기반 suggest는 market 파라미터가 KOSPI/KOSDAQ/NASDAQ/ALL 이므로
     // 온보딩 자산 타입 기준으로 대략 좁혀줌
-    if (userData.assetType === "미국주식") return "NASDAQ";
-    if (userData.assetType === "국내주식") return "KOSPI";
+    const assets = userData.assetType;
+    if (assets.includes("미국주식") && !assets.includes("국내주식")) return "NASDAQ";
+    if (assets.includes("국내주식") && !assets.includes("미국주식")) return "KOSPI";
     return "ALL";
   };
 
@@ -250,9 +262,8 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                     onMouseEnter={() => setHighlight(idx)}
                     onMouseDown={(e) => e.preventDefault()} // blur 방지
                     onClick={() => onPick(it)}
-                    className={`px-4 py-3 cursor-pointer flex items-center justify-between ${
-                      active ? "bg-indigo-50" : "bg-white"
-                    } hover:bg-indigo-50`}
+                    className={`px-4 py-3 cursor-pointer flex items-center justify-between ${active ? "bg-indigo-50" : "bg-white"
+                      } hover:bg-indigo-50`}
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{it.name}</div>
@@ -308,11 +319,10 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
         <div
           key={p.id}
           onClick={() => updateData("riskProfile", p.id)}
-          className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
-            userData.riskProfile === p.id
-              ? "border-indigo-600 bg-indigo-50 shadow-md"
-              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-          }`}
+          className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${userData.riskProfile === p.id
+            ? "border-indigo-600 bg-indigo-50 shadow-md"
+            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+            }`}
         >
           <div>
             <h4 className={`text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>
@@ -322,9 +332,8 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
             <p className="text-xs text-gray-400 mt-1">{p.sub}</p>
           </div>
           <div
-            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-              userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
-            }`}
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
+              }`}
           >
             {userData.riskProfile === p.id && <div className="w-3 h-3 bg-indigo-600 rounded-full" />}
           </div>
@@ -361,17 +370,15 @@ const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
         <div
           key={l.level}
           onClick={() => updateData("knowledgeLevel", l.level)}
-          className={`cursor-pointer p-4 rounded-xl border transition-all duration-200 ${
-            userData.knowledgeLevel === l.level
-              ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600"
-              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-          }`}
+          className={`cursor-pointer p-4 rounded-xl border transition-all duration-200 ${userData.knowledgeLevel === l.level
+            ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600"
+            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+            }`}
         >
           <div className="flex items-center gap-3 mb-2">
             <span
-              className={`px-2 py-1 rounded-md text-xs font-bold ${
-                userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
-              }`}
+              className={`px-2 py-1 rounded-md text-xs font-bold ${userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
+                }`}
             >
               Lv.{l.level}
             </span>
@@ -391,7 +398,7 @@ const Onboarding = () => {
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [userData, setUserData] = useState<UserData>({
-    assetType: "",
+    assetType: [],
     sectors: [],
     portfolio: [],
     riskProfile: "",
@@ -414,7 +421,7 @@ const Onboarding = () => {
               setUserData(response.data);
             }
           } else {
-            if (response.data && response.data.assetType) {
+            if (response.data && response.data.assetType && response.data.assetType.length > 0) {
               navigate("/");
             }
           }
@@ -461,7 +468,7 @@ const Onboarding = () => {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return !!userData.assetType;
+        return userData.assetType.length > 0;
       case 2:
         return userData.sectors.length > 0;
       case 3:
@@ -476,7 +483,7 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-start justify-center p-4 pt-20">
+    <div className="min-h-screen flex items-start justify-center p-4 pt-20">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="bg-gray-100 h-2 w-full">
           <div
@@ -522,20 +529,18 @@ const Onboarding = () => {
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className={`px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-colors ${
-                currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
-              }`}
+              className={`px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-colors ${currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
+                }`}
             >
               이전
             </button>
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`px-8 py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 ${
-                !isStepValid()
-                  ? "bg-gray-300 cursor-not-allowed shadow-none"
-                  : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
-              }`}
+              className={`px-8 py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 ${!isStepValid()
+                ? "bg-gray-300 cursor-not-allowed shadow-none"
+                : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
+                }`}
             >
               {currentStep === 5 ? (isEditing ? "수정 완료" : "완료") : "다음"}
             </button>

@@ -13,7 +13,7 @@ const filterOptions: { key: 'all' | 'domestic' | 'international'; label: string 
 
 const NewsFilterBar: React.FC<NewsFilterBarProps> = ({ activeFilter, onFilterChange }) => {
     return (
-        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center mt-10 mb-4 gap-4">
             {/* Filter Tabs */}
             <div className="flex bg-white border border-gray-300 rounded-lg overflow-hidden p-1 shadow-sm w-full md:w-auto">
                 {filterOptions.map((filter) => (

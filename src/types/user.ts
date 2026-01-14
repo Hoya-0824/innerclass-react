@@ -1,5 +1,5 @@
 export type UserData = {
-    assetType: string;
+    assetType: string[];
     sectors: string[];
     portfolio: string[];
     riskProfile: string;
