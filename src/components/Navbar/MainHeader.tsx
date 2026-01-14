@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import TopLogo from '../../assets/logo.png';
 
 const MainHeader = () => {
   const location = useLocation();
@@ -11,7 +12,7 @@ const MainHeader = () => {
     { name: "홈", path: "/" },
     { name: "챗봇 상담하기", path: "/chatbot" },
     { name: "관심 뉴스", path: "/news" },
-    { name: "관심 종목 예측", path: "/prediction" }
+    // { name: "관심 종목 예측", path: "/prediction" }
   ];
 
   // 1. 화면이 뜰 때(또는 페이지 이동 시) 로컬스토리지에서 로그인 정보 확인
@@ -60,20 +61,25 @@ const MainHeader = () => {
         </button>
       </div>
     ) : (
-      <Link to="/login">
-        <button className="px-5 py-2 text-sm font-bold text-white bg-mkOrange cursor-pointer rounded-full hover:bg-orange-600 transition-colors duration-200">
-          로그인
+      <Link to="/login" title="로그인">
+        <button className="flex items-center justify-center w-auto px-6 py-2 text-black bg-white border border-gray-200 rounded-full hover:text-mkBlue hover:border-mkBlue transition-colors duration-200 cursor-pointer shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+            <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
+          </svg>
         </button>
       </Link>
     )
   );
 
   return (
-    <header className="bg-white py-5">
-      <div className="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row items-center gap-4 md:gap-0">
-        <div className="w-full md:w-auto flex justify-between items-center">
-          <Link to="/" className="font-black text-3xl font-serif cursor-pointer no-underline text-black">
-            Team <span className="text-mkOrange">2</span>
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center py-4">
+      <div className="w-[90%] max-w-[1600px] bg-white/30 backdrop-blur-md px-6 md:px-10 py-4 rounded-[30px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-4 md:gap-0">
+        <div className="w-full md:w-auto flex justify-between items-center mr-20">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer no-underline">
+            {/* Simple logo placeholder to match image */}
+            {/* Simple logo placeholder to match image */}
+            <img src={TopLogo} alt="DecodeX Logo" className="w-8 h-8 object-contain" />
+            <span className="font-extrabold text-2xl font-sans text-gray-900 tracking-tight">DecodeX</span>
           </Link>
 
           {/* Mobile Auth */}
@@ -82,12 +88,12 @@ const MainHeader = () => {
           </div>
         </div>
 
-        <nav className="flex gap-6 md:gap-8 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 md:pb-0 scrollbar-hide md:ml-10">
+        <nav className="flex gap-12 md:gap-16 w-full md:w-auto overflow-x-auto whitespace-nowrap pb-2 md:pb-0 scrollbar-hide ml-2">
           {menuItems.map((menu) => (
             <Link
               key={menu.name}
               to={menu.path}
-              className={`text-lg font-bold no-underline transition-colors shrink-0 ${location.pathname === menu.path ? 'text-mkOrange' : 'text-black hover:text-mkOrange'
+              className={`text-lg font-bold no-underline transition-colors shrink-0 ${location.pathname === menu.path ? 'text-mkBlue' : 'text-black hover:text-mkBlue'
                 }`}
             >
               {menu.name}
