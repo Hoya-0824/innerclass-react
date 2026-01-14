@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import HomeLogo from "../assets/logo.png";
+import HomeLogo from "../assets/Logo.svg";
 
 
 import type { TrendTab, TrendKeywordsResponse, SectorItem, TodayMarketResponse, SectorNewsRow, NewsDetailItem } from "./home/types";
@@ -444,7 +444,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-4 py-10">
         {/* ✅ 뉴스 분석 모달 */}
         <NewsInsightModal open={detailOpen} item={detailItem} onClose={closeDetail} />
 
@@ -454,7 +454,6 @@ const Home = () => {
           {/* Header */}
           <div className="mx-auto flex max-w-2xl flex-col items-center justify-center">
             <div className="mb-2 flex items-center gap-2">
-              {/* Logo Icon Placeholder: Terminal Icon */}
               {/* Logo Icon Placeholder: Terminal Icon */}
               <img src={HomeLogo} alt="DecodeX Logo" className="w-8 h-8 object-contain" />
               <h1 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">DecodeX</h1>
@@ -527,7 +526,7 @@ const Home = () => {
                 ),
               },
               {
-                label: "용어 & 맥락 설명",
+                label: "관심 뉴스 추천",
                 color: "text-[#EC4899]",
                 bg: "bg-[#EC4899]",
                 icon: (
@@ -607,7 +606,7 @@ const Home = () => {
         </div>
 
         {/* 오늘의 트렌드 뉴스 */}
-        <div className="mt-6">
+        <div>
           <SectionTitle title="오늘의 트렌드 뉴스" />
 
           {/* 키워드 탭 */}

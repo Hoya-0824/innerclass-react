@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import LoginGateOverlay from "../components/Auth/LoginGateOverlay";
-import ChatbotLogo from "../assets/logo.png";
+import ChatbotLogo from "../assets/Logo.svg";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -165,6 +165,7 @@ const Chatbot = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showChatView, setShowChatView] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -206,6 +207,7 @@ const Chatbot = () => {
     setNextPage(2);
     setMessages([]);
     setShowChatView(true);
+    setMobileMenuOpen(false); // Close mobile menu on selection
 
     try {
       const r = await fetchSessionMessages({ session_id: sid, page: 1, page_size: 50 });
@@ -227,6 +229,7 @@ const Chatbot = () => {
     setHasMore(false);
     setNextPage(2);
     setShowChatView(false);
+    setMobileMenuOpen(false); // Close mobile menu
     inputRef.current?.focus();
   };
 
@@ -451,14 +454,37 @@ const Chatbot = () => {
     <div className="">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 pb-8 relative min-h-[calc(100vh-120px)]">
         <div className="flex gap-6 relative">
-          {/* Left Sidebar */}
-          <aside className="w-[260px] shrink-0">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden">
+          {/* Mobile Menu Backdrop */}
+          {mobileMenuOpen && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Sidebar */}
+          <aside
+            className={`
+            fixed md:relative inset-y-0 left-0 z-50 mt-6 w-[280px] md:w-[260px] bg-gray-50 md:bg-transparent transform transition-transform duration-300 ease-in-out md:translate-x-0 md:transform-none shrink-0
+            ${mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
+          `}
+          >
+            <div className="h-full md:h-auto bg-white/80 backdrop-blur-sm md:rounded-2xl md:shadow-sm md:border md:border-white/50 overflow-hidden flex flex-col">
+              {/* Mobile Header in Sidebar */}
+              <div className="md:hidden p-4 flex justify-between items-center border-b border-gray-100">
+                <span className="font-bold text-lg text-gray-800">메뉴</span>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-1">
+                  <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
               {/* New Chat Button */}
               <div className="p-4">
                 <button
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full cursor-pointer text-white text-sm font-semibold transition-all duration-200 hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)' }}
+                  style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)" }}
                   onClick={onNewChat}
                   type="button"
                 >
@@ -474,20 +500,16 @@ const Chatbot = () => {
                 <div className="text-sm font-semibold text-gray-700 mb-3">히스토리</div>
               </div>
 
-              <div className="px-2 pb-4 max-h-[500px] overflow-auto">
+              <div className="px-2 pb-4 flex-1 overflow-auto max-h-[calc(100vh-180px)] md:max-h-[500px]">
                 {!getAccessToken() ? (
-                  <div className="text-xs text-gray-500 px-2 py-3">
-                    로그인 후 히스토리를 볼 수 있습니다.
-                  </div>
+                  <div className="text-xs text-gray-500 px-2 py-3">로그인 후 히스토리를 볼 수 있습니다.</div>
                 ) : sessions.length === 0 ? (
                   <div className="text-xs text-gray-500 px-2 py-3">대화 내역이 없습니다.</div>
                 ) : (
                   <div className="space-y-3">
                     {groupedSessions.map(([label, items]) => (
                       <div key={label}>
-                        <div className="px-2 mb-2 text-xs font-medium text-gray-500">
-                          {label}
-                        </div>
+                        <div className="px-2 mb-2 text-xs font-medium text-gray-500">{label}</div>
 
                         <div className="space-y-1">
                           {items.map((s) => {
@@ -534,33 +556,46 @@ const Chatbot = () => {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 flex flex-col">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden flex-1 flex flex-col min-h-[600px]">
+          <main className="flex-1 flex flex-col min-w-0 pt-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden flex-1 flex flex-col min-h-[600px] relative">
+
+              {/* Mobile Menu Button - Increased top spacing to avoid Navbar overlap */}
+              <div className="md:hidden absolute top-4 left-4 z-10">
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="p-2 bg-white rounded-full shadow-sm border border-gray-200 text-gray-600 hover:bg-gray-50"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+
               {!showChatView && messages.length === 0 ? (
                 /* Welcome View */
-                <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
+                <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 py-12 pt-20 md:pt-12">
                   {/* Logo */}
                   <div className="flex justify-center items-center gap-3 mb-4">
                     <img src={ChatbotLogo} alt="DecodeX Logo" width={48} height={48} className="object-contain" />
-                    <span className="text-5xl font-extrabold text-gray-900 tracking-tight">DecodeX</span>
+                    <span className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">DecodeX</span>
                   </div>
 
                   {/* Subtitle */}
-                  <div className="text-center mb-12">
+                  <div className="text-center mb-8 md:mb-12">
                     <p className="text-lg font-semibold text-gray-900">초보 투자자를 위한 뉴스 해석 AI</p>
                     <p className="text-gray-600">복잡한 경제 뉴스를 한눈에 이해하세요</p>
                   </div>
 
                   {/* Feature Cards */}
-                  <div className="flex gap-4 mb-16 flex-wrap justify-center">
+                  <div className="grid grid-cols-2 md:flex gap-3 md:gap-4 mb-10 md:mb-16 w-full md:w-auto justify-center">
                     {featureCards.map((card, idx) => (
                       <div
                         key={idx}
-                        className={`${card.bgColor} rounded-2xl p-5 w-[180px] transition-transform hover:scale-105 cursor-pointer border border-white/50`}
+                        className={`${card.bgColor} rounded-2xl p-4 md:p-5 w-full md:w-[180px] transition-transform hover:scale-105 cursor-pointer border border-white/50 flex flex-col items-center text-center`}
                       >
-                        <div className="mb-3">{card.icon}</div>
+                        <div className="mb-2 md:mb-3">{card.icon}</div>
                         <div className="text-sm font-semibold text-gray-900 mb-1">{card.title}</div>
-                        <div className="text-xs text-gray-600 whitespace-pre-line">{card.description}</div>
+                        <div className="text-xs text-gray-600 whitespace-pre-line leading-tight">{card.description}</div>
                       </div>
                     ))}
                   </div>
@@ -600,7 +635,7 @@ const Chatbot = () => {
                 /* Chat View */
                 <>
                   {/* Chat Messages */}
-                  <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+                  <div className="flex-1 overflow-auto px-4 md:px-6 py-5 space-y-4 pt-20 md:pt-5">
                     {hasMore && (
                       <div className="flex justify-center">
                         <button

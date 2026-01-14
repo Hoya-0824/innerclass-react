@@ -27,7 +27,7 @@ const SubHeader = () => {
             placeholder="종목명 또는 종목코드를 입력하세요."
             className="flex-grow border-none outline-none text-sm placeholder-gray-400"
           />
-          <button className="text-mkOrange font-bold bg-transparent border-none cursor-pointer">
+          <button className="text-mkBlue font-bold bg-transparent border-none cursor-pointer">
             🔍
           </button>
         </div>

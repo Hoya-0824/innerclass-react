@@ -8,6 +8,7 @@ const MyPage = () => {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -72,9 +73,63 @@ const MyPage = () => {
             <div className="max-w-3xl mx-auto space-y-6">
                 <h1 className="text-3xl font-bold text-gray-900">마이 페이지</h1>
                 <div className="bg-white shadow rounded-lg overflow-hidden">
-                    <div className="px-6 py-5 border-b border-gray-200">
-                        <h3 className="text-lg font-medium leading-6 text-gray-900">내 투자 성향 정보</h3>
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">온보딩에서 선택한 정보입니다.</p>
+                    <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-medium leading-6 text-gray-900">내 투자 성향 정보</h3>
+                            <p className="mt-1 max-w-2xl text-sm text-gray-500">온보딩에서 선택한 정보입니다.</p>
+                        </div>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <svg className="w-5 h-5 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
+                            {showSettingsMenu && (
+                                <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                    <div className="py-1" role="menu" aria-orientation="vertical">
+                                        <button
+                                            onClick={() => {
+                                                navigate('/onboarding', { state: { isEditing: true } });
+                                                setShowSettingsMenu(false);
+                                            }}
+                                            className="w-full text-left px-4 py-2 cursor-pointer text-sm text-gray-700 hover:bg-gray-100"
+                                            role="menuitem"
+                                        >
+                                            수정하기
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                setShowSettingsMenu(false);
+                                                if (window.confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                                                    try {
+                                                        const accessToken = localStorage.getItem('access_token');
+                                                        await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/user/withdraw/`, {
+                                                            headers: { Authorization: `Bearer ${accessToken}` }
+                                                        });
+                                                        alert('탈퇴가 완료되었습니다.');
+                                                        localStorage.removeItem('access_token');
+                                                        localStorage.removeItem('refresh_token');
+                                                        localStorage.removeItem('user_name');
+                                                        navigate('/');
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        alert('회원탈퇴 처리에 실패했습니다.');
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full text-left px-4 py-2 cursor-pointer text-sm text-red-600 hover:bg-gray-100"
+                                            role="menuitem"
+                                        >
+                                            회원탈퇴
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
                         <dl className="sm:divide-y sm:divide-gray-200">
@@ -125,37 +180,6 @@ const MyPage = () => {
                         </dl>
                     </div>
                 </div>
-            </div>
-            <div className="mt-8 flex justify-center gap-4">
-                <button
-                    onClick={() => navigate('/onboarding', { state: { isEditing: true } })}
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg cursor-pointer hover:bg-orange-600 transition-colors font-bold sm:w-auto"
-                >
-                    수정하기
-                </button>
-                <button
-                    className="bg-red-500 text-white px-6 py-2 rounded-lg cursor-pointer hover:bg-red-600 transition-colors font-bold sm:w-auto"
-                    onClick={async () => {
-                        if (window.confirm('정말로 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-                            try {
-                                const accessToken = localStorage.getItem('access_token');
-                                await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/user/withdraw/`, {
-                                    headers: { Authorization: `Bearer ${accessToken}` }
-                                });
-                                alert('탈퇴가 완료되었습니다.');
-                                localStorage.removeItem('access_token');
-                                localStorage.removeItem('refresh_token');
-                                localStorage.removeItem('user_name');
-                                navigate('/');
-                            } catch (err) {
-                                console.error(err);
-                                alert('회원탈퇴 처리에 실패했습니다.');
-                            }
-                        }
-                    }}
-                >
-                    회원탈퇴
-                </button>
             </div>
         </div>
     );

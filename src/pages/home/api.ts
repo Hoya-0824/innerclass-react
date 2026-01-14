@@ -41,8 +41,8 @@ export function mapRawRowToStockRow(raw: TodayMarketRawRow, asof: string, opts?:
 
   const spark = Array.isArray(sparkCandidate)
     ? sparkCandidate
-        .map((x: any) => (typeof x === "number" ? x : Number(x)))
-        .filter((x: any) => Number.isFinite(x))
+      .map((x: any) => (typeof x === "number" ? x : Number(x)))
+      .filter((x: any) => Number.isFinite(x))
     : undefined;
 
   return {
@@ -106,13 +106,14 @@ export async function fetchTrendKeywords(
 }
 
 /** ===== sector APIs ===== */
-export async function fetchSectorList(params: { market?: NewsMarketFilter }, signal?: AbortSignal): Promise<SectorListResponse> {
-  const qs = new URLSearchParams();
-  if (params.market) qs.set("market", params.market);
-  const url = `${API_BASE_URL}/api/news/sectors/?${qs.toString()}`;
-  const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`sector_list fetch failed: ${res.status}`);
-  return res.json();
+export async function fetchSectorList(params: { market?: NewsMarketFilter }, _signal?: AbortSignal): Promise<SectorListResponse> {
+  // const qs = new URLSearchParams();
+  // if (params.market) qs.set("market", params.market);
+  // const url = `${API_BASE_URL}/api/news/sectors/?${qs.toString()}`;
+  // const res = await fetch(url, { signal, headers: { Accept: "application/json" } });
+  // if (!res.ok) throw new Error(`sector_list fetch failed: ${res.status}`);
+  // return res.json();
+  return { market: params.market ?? "all", items: [] };
 }
 
 export async function fetchNewsBySector(
