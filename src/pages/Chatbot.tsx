@@ -23,13 +23,6 @@ type PromptTemplate = {
   updated_at: string;
 };
 
-type OnboardingProfile = {
-  assetType: string;
-  sectors: string[];
-  riskProfile: string;
-  knowledgeLevel: number;
-};
-
 function getAccessToken(): string | null {
   return localStorage.getItem("access_token");
 }
@@ -46,15 +39,6 @@ async function fetchTemplates(): Promise<PromptTemplate[]> {
   if (!res.ok) throw new Error("Failed to load prompt templates");
   const data = await res.json();
   return data.templates ?? [];
-}
-
-async function fetchOnboarding(): Promise<OnboardingProfile | null> {
-  const res = await fetch("/api/user/onboarding/", {
-    headers: { ...authHeaders() },
-  });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data ?? null;
 }
 
 async function sendChat(
@@ -78,7 +62,7 @@ async function sendChat(
     try {
       const data = await res.json();
       detail = data.detail ?? detail;
-    } catch { }
+    } catch {}
     throw new Error(detail);
   }
 
@@ -108,10 +92,9 @@ async function fetchSessionMessages(params: {
   has_next: boolean;
 }> {
   const { session_id, page = 1, page_size = 50 } = params;
-  const res = await fetch(
-    `/api/chatbot/sessions/${session_id}/?page=${page}&page_size=${page_size}`,
-    { headers: { ...authHeaders() } }
-  );
+  const res = await fetch(`/api/chatbot/sessions/${session_id}/?page=${page}&page_size=${page_size}`, {
+    headers: { ...authHeaders() },
+  });
   if (!res.ok) throw new Error("Failed to load session messages");
   return await res.json();
 }
@@ -131,9 +114,7 @@ function formatDateLabel(iso: string) {
   yday.setDate(today.getDate() - 1);
 
   const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   if (isSameDay(d, today)) return "오늘";
   if (isSameDay(d, yday)) return "어제";
@@ -143,12 +124,16 @@ function formatDateLabel(iso: string) {
 // Message Icon SVG for history items
 const MessageIcon = () => (
   <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+    />
   </svg>
 );
 
 const Chatbot = () => {
-  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [templateId, setTemplateId] = useState<number | null>(null);
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -156,8 +141,6 @@ const Chatbot = () => {
 
   const [hasMore, setHasMore] = useState(false);
   const [nextPage, setNextPage] = useState(2);
-
-  const [profile, setProfile] = useState<OnboardingProfile | null>(null);
 
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -183,13 +166,6 @@ const Chatbot = () => {
     }
     return Array.from(groups.entries());
   }, [sessions]);
-
-  const loadProfile = async () => {
-    try {
-      const p = await fetchOnboarding();
-      setProfile(p);
-    } catch { }
-  };
 
   const refreshSessions = async (selectNewest = false) => {
     const ss = await fetchSessions();
@@ -268,7 +244,6 @@ const Chatbot = () => {
     (async () => {
       try {
         const ts = await fetchTemplates();
-        setTemplates(ts);
         if (ts.length > 0) setTemplateId(ts[0].id);
       } catch (e: any) {
         console.warn(e?.message ?? e);
@@ -283,8 +258,7 @@ const Chatbot = () => {
         console.warn(e?.message ?? e);
       }
     })();
-
-    void loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -339,6 +313,7 @@ const Chatbot = () => {
     }
   }, [input, loading, sessionId, templateId]);
 
+  // ✅ Home에서 넘어온 draft 자동 전송 로직
   useEffect(() => {
     if (autoSentRef.current) return;
 
@@ -401,6 +376,7 @@ const Chatbot = () => {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
 
   const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
@@ -410,13 +386,20 @@ const Chatbot = () => {
     }
   };
 
-  // Feature cards data
   const featureCards = [
     {
       icon: (
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)' }}>
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)" }}
+        >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         </div>
       ),
@@ -426,9 +409,17 @@ const Chatbot = () => {
     },
     {
       icon: (
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)' }}>
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)" }}
+        >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
           </svg>
         </div>
       ),
@@ -438,9 +429,17 @@ const Chatbot = () => {
     },
     {
       icon: (
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 100%)' }}>
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #fbbf24 0%, #f97316 100%)" }}
+        >
           <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         </div>
       ),
@@ -489,7 +488,12 @@ const Chatbot = () => {
                   type="button"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
                   </svg>
                   새 채팅
                 </button>
@@ -617,17 +621,21 @@ const Chatbot = () => {
                         onClick={() => void onSend()}
                         disabled={loading || input.trim().length === 0}
                         className="ml-3 p-2 rounded-full hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                        type="button"
                       >
                         <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
                         </svg>
                       </button>
                     </div>
 
                     {error && (
-                      <div className="mt-3 text-center text-sm text-red-600 bg-red-50 py-2 px-4 rounded-lg">
-                        {error}
-                      </div>
+                      <div className="mt-3 text-center text-sm text-red-600 bg-red-50 py-2 px-4 rounded-lg">{error}</div>
                     )}
                   </div>
                 </div>
@@ -671,9 +679,18 @@ const Chatbot = () => {
                       <div className="flex justify-start">
                         <div className="max-w-[75%] rounded-2xl rounded-tl-md bg-gray-100 text-gray-900 px-4 py-3 text-sm">
                           <div className="flex gap-1">
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                            <span
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            />
+                            <span
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            />
+                            <span
+                              className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -707,6 +724,7 @@ const Chatbot = () => {
                         onClick={() => void onSend()}
                         disabled={loading || input.trim().length === 0}
                         className="ml-3 p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-40 transition-all"
+                        type="button"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -721,9 +739,7 @@ const Chatbot = () => {
         </div>
 
         {/* Login Gate Overlay for unauthenticated users */}
-        {!getAccessToken() && (
-          <LoginGateOverlay message={"로그인하고\n나만의 AI 상담을 받아보세요!"} />
-        )}
+        {!getAccessToken() && <LoginGateOverlay message={"로그인하고\n나만의 AI 상담을 받아보세요!"} />}
       </div>
     </div>
   );

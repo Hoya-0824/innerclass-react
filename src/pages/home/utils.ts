@@ -5,7 +5,7 @@ export function classNames(...xs: Array<string | false | undefined | null>) {
 }
 
 /**
- * ✅ percent points 기반 표기
+ *  percent points 기반 표기
  *  - 30.0 -> "+30%"
  *  - -5.01 -> "-5%"
  *  - 0.49 -> "0%" (기본은 정수 표시)
@@ -87,4 +87,10 @@ export function getHost(url: string): string {
   } catch {
     return "";
   }
+}
+
+export function getApiBase() {
+  // 로컬/운영 분기 필요하면 환경변수로 구성 권장
+  // 예: import.meta.env.VITE_API_BASE ?? "https://swjbs.com/api"
+  return (import.meta as any).env?.VITE_API_BASE ?? "https://swjbs.com/api";
 }

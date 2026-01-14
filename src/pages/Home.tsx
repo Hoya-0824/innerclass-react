@@ -2,15 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HomeLogo from "../assets/Logo.svg";
 
+import { ThemeNewsSelection } from "./home/components/ThemeNewsSelection";
 
-import type { TrendTab, TrendKeywordsResponse, SectorItem, TodayMarketResponse, SectorNewsRow, NewsDetailItem } from "./home/types";
-import { getAccessToken, classNames } from "./home/utils";
-import { fetchTodayMarket, fetchTrendKeywords, fetchSectorList, fetchNewsBySector } from "./home/api";
+import type { TrendTab, TrendKeywordsResponse, TodayMarketResponse, NewsDetailItem } from "./home/types";
+import { classNames } from "./home/utils";
+import { fetchTodayMarket, fetchTrendKeywords } from "./home/api";
 
 import { SectionTitle } from "./home/components/SectionTitle";
 import { NewsInsightModal } from "./home/components/NewsInsightModal";
 import { TrendNewsCard, CarouselArrowButton } from "./home/components/TrendNewsCarousel";
-import { SectorLeftItem, SectorScrollButton, SectorNewsRowItem } from "./home/components/SectorNews";
 import { MarketMoversCard } from "./home/components/MarketMoversCard";
 
 const Home = () => {
@@ -36,7 +36,7 @@ const Home = () => {
   const trendAbortRef = useRef<AbortController | null>(null);
   const trendRunSeqRef = useRef<number>(0);
 
-  /** ✅ Trend carousel index 기반 (스크롤바 제거) */
+  /** Trend carousel index 기반 */
   const carouselWrapRef = useRef<HTMLDivElement | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [carouselCanLeft, setCarouselCanLeft] = useState(false);
@@ -76,30 +76,7 @@ const Home = () => {
     return Math.max(0, Math.min(idx, maxIdx));
   };
 
-  /** ===== Sector state ===== */
-  const [sectorLoading, setSectorLoading] = useState(false);
-  const [sectorErr, setSectorErr] = useState<string>("");
-  const [sectorItems, setSectorItems] = useState<SectorItem[]>([]);
-  const [activeSector, setActiveSector] = useState<string>("");
-
-  const [sectorNewsLoading, setSectorNewsLoading] = useState(false);
-  const [sectorNewsErr, setSectorNewsErr] = useState<string>("");
-  const [sectorNews, setSectorNews] = useState<SectorNewsRow[]>([]);
-
-  const sectorAbortRef = useRef<AbortController | null>(null);
-  const sectorNewsAbortRef = useRef<AbortController | null>(null);
-
-  /** ✅ 섹터 리스트: "섹터 양"에 맞게 높이 자동 축소 (최대 5개까지만) */
-  const sectorItemsRef = useRef<HTMLDivElement | null>(null);
-  const [canSectorItemsUp, setCanSectorItemsUp] = useState(false);
-  const [canSectorItemsDown, setCanSectorItemsDown] = useState(false);
-
-  /** ✅ 섹터 뉴스 리스트 스크롤 버튼 */
-  const sectorNewsListRef = useRef<HTMLDivElement | null>(null);
-  const [canSectorUp, setCanSectorUp] = useState(false);
-  const [canSectorDown, setCanSectorDown] = useState(false);
-
-  /** ✅ 뉴스 분석 모달 */
+  /**  뉴스 분석 모달 */
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<NewsDetailItem | null>(null);
 
@@ -113,32 +90,6 @@ const Home = () => {
     setDetailItem(null);
   };
 
-  const updateScrollState = (el: HTMLDivElement | null, setUp: (v: boolean) => void, setDown: (v: boolean) => void) => {
-    if (!el) {
-      setUp(false);
-      setDown(false);
-      return;
-    }
-    const top = el.scrollTop;
-    const max = el.scrollHeight - el.clientHeight;
-    setUp(top > 2);
-    setDown(max - top > 2);
-  };
-
-  const updateSectorItemsScrollState = () => updateScrollState(sectorItemsRef.current, setCanSectorItemsUp, setCanSectorItemsDown);
-
-  const updateSectorNewsScrollState = () => updateScrollState(sectorNewsListRef.current, setCanSectorUp, setCanSectorDown);
-
-  const scrollListBy = (el: HTMLDivElement | null, dir: "up" | "down") => {
-    if (!el) return;
-    const dy = Math.max(120, Math.floor(el.clientHeight * 0.8));
-    el.scrollBy({ top: dir === "up" ? -dy : dy, behavior: "smooth" });
-    window.setTimeout(() => {
-      if (el === sectorItemsRef.current) updateSectorItemsScrollState();
-      if (el === sectorNewsListRef.current) updateSectorNewsScrollState();
-    }, 120);
-  };
-
   const goChatbot = (text: string) => {
     const t = text.trim();
     if (!t) return;
@@ -148,8 +99,104 @@ const Home = () => {
   };
 
   // =========================================================
-  // ✅ Market Sessions (OPEN/CLOSED/HOLIDAY ...) : 60초 폴링
-  //   - MarketMoversCard의 marketLabel 옆에 배지 표시용
+  // Feature Cards → 클릭 시 챗봇 자동 전송
+  // =========================================================
+  const FEATURE_CARDS = useMemo(
+    () => [
+      {
+        label: "오늘의 뉴스 해석",
+        color: "text-[#06B6D4]",
+        bg: "bg-[#06B6D4]",
+        prompt:
+          "오늘 주요 경제/증시 뉴스를 3~5개로 요약하고, 초보 투자자 관점에서 핵심 포인트와 주의할 점까지 설명해줘.",
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
+          </svg>
+        ),
+      },
+      {
+        label: "투자 판단 도움",
+        color: "text-[#8B5CF6]",
+        bg: "bg-[#8B5CF6]",
+        prompt:
+          "오늘 시장 흐름(코스피/코스닥/나스닥) 기준으로 초보 투자자가 체크해야 할 리스크(금리, 환율, 실적, 섹터 순환)를 정리하고, 단기/중기 관점으로 대응 전략을 제안해줘.",
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+            <polyline points="16 7 22 7 22 13" />
+          </svg>
+        ),
+      },
+      {
+        label: "용어 & 맥락 설명",
+        color: "text-[#F59E0B]",
+        bg: "bg-[#F59E0B]",
+        prompt:
+          "오늘 뉴스에서 자주 나오는 경제/금융 용어(예: 금리 인하, CPI, 실적 가이던스, PER/PBR, 유동성)를 초보자 수준으로 예시와 함께 쉽게 설명해줘.",
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
+        ),
+      },
+      {
+        label: "관심 뉴스 추천",
+        color: "text-[#EC4899]",
+        bg: "bg-[#EC4899]",
+        prompt:
+          "내 관심사(예: 반도체, 2차전지, AI, 환율, 금리)를 물어본 다음, 오늘 뉴스 중에서 관련 뉴스 5개를 추천하고 왜 중요한지 한 줄씩 설명해줘.",
+        icon: (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+        ),
+      },
+    ],
+    []
+  );
+
+  // =========================================================
+  // Market Sessions (OPEN/CLOSED/HOLIDAY ...) : 60초 폴링
   // =========================================================
   type MarketLabel = "KOSDAQ" | "KOSPI" | "NASDAQ";
   type MarketSessionStatus = "OPEN" | "PRE_OPEN" | "POST_CLOSE" | "CLOSED" | "HOLIDAY";
@@ -180,9 +227,10 @@ const Home = () => {
       sessionsAbortRef.current = controller;
 
       try {
-        const res = await fetch(`/api/markets/sessions/?pre_open_grace_min=5&post_close_grace_min=10&markets=KOSDAQ,KOSPI,NASDAQ`, {
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `/api/markets/sessions/?pre_open_grace_min=5&post_close_grace_min=10&markets=KOSDAQ,KOSPI,NASDAQ`,
+          { signal: controller.signal }
+        );
         if (!res.ok) return;
         const data: MarketSessionsResponse = await res.json();
         setSessions(data.sessions);
@@ -291,78 +339,6 @@ const Home = () => {
     };
   }, []);
 
-  /** ===== Sector list load (Home mount) ===== */
-  useEffect(() => {
-    const run = async () => {
-      if (sectorAbortRef.current) sectorAbortRef.current.abort();
-      const controller = new AbortController();
-      sectorAbortRef.current = controller;
-
-      setSectorLoading(true);
-      setSectorErr("");
-
-      try {
-        const resp = await fetchSectorList({ market: "all" }, controller.signal);
-        const items = resp.items ?? [];
-        setSectorItems(items);
-
-        setActiveSector((prev) => {
-          if (prev && items.some((x) => x.sector === prev)) return prev;
-          return items[0]?.sector ?? "";
-        });
-
-        window.setTimeout(updateSectorItemsScrollState, 0);
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
-        setSectorErr(e?.message ?? "Failed to load sectors");
-      } finally {
-        setSectorLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      if (sectorAbortRef.current) sectorAbortRef.current.abort();
-    };
-  }, []);
-
-  /** ===== Load news when sector changes (MAX 30) ===== */
-  useEffect(() => {
-    if (!activeSector) return;
-
-    const run = async () => {
-      if (sectorNewsAbortRef.current) sectorNewsAbortRef.current.abort();
-      const controller = new AbortController();
-      sectorNewsAbortRef.current = controller;
-
-      setSectorNewsLoading(true);
-      setSectorNewsErr("");
-
-      try {
-        const resp = await fetchNewsBySector({ sector: activeSector, market: "all", limit: 30 }, controller.signal);
-        setSectorNews((resp.news ?? []).slice(0, 30));
-
-        window.setTimeout(() => {
-          const el = sectorNewsListRef.current;
-          if (el) el.scrollTo({ top: 0, behavior: "auto" });
-          updateSectorNewsScrollState();
-        }, 0);
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
-        setSectorNewsErr(e?.message ?? "Failed to load sector news");
-      } finally {
-        setSectorNewsLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      if (sectorNewsAbortRef.current) sectorNewsAbortRef.current.abort();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSector]);
-
-  /** ✅ Trend carousel: 리사이즈/탭 변경 시 index/버튼 상태 갱신 */
   useEffect(() => {
     const w = recomputeCardWidth();
     setCardW(w);
@@ -376,9 +352,6 @@ const Home = () => {
       setCardW(recomputeCardWidth());
       setCarouselIndex((prev) => clampCarouselIndex(prev));
       window.setTimeout(updateCarouselButtons, 0);
-
-      updateSectorItemsScrollState();
-      updateSectorNewsScrollState();
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -391,25 +364,6 @@ const Home = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carouselIndex, cardW, activeTab?.news?.length]);
 
-  useEffect(() => {
-    const elA = sectorItemsRef.current;
-    const elB = sectorNewsListRef.current;
-
-    const onScrollA = () => updateSectorItemsScrollState();
-    const onScrollB = () => updateSectorNewsScrollState();
-
-    elA?.addEventListener("scroll", onScrollA);
-    elB?.addEventListener("scroll", onScrollB);
-
-    updateSectorItemsScrollState();
-    updateSectorNewsScrollState();
-
-    return () => {
-      elA?.removeEventListener("scroll", onScrollA);
-      elB?.removeEventListener("scroll", onScrollB);
-    };
-  }, [sectorItems.length, sectorNews.length, sectorNewsLoading, sectorLoading]);
-
   const kosdaqTopGainer = useMemo(() => dKosdaq?.top_gainers?.[0] ?? null, [dKosdaq]);
   const kosdaqTopLoser = useMemo(() => dKosdaq?.top_drawdown?.[0] ?? null, [dKosdaq]);
 
@@ -418,11 +372,6 @@ const Home = () => {
 
   const nasdaqTopGainer = useMemo(() => dNasdaq?.top_gainers?.[0] ?? null, [dNasdaq]);
   const nasdaqTopLoser = useMemo(() => dNasdaq?.top_drawdown?.[0] ?? null, [dNasdaq]);
-
-  const activeSectorLabel = useMemo(() => {
-    const it = sectorItems.find((x) => x.sector === activeSector);
-    return it?.label ?? "산업 뉴스";
-  }, [sectorItems, activeSector]);
 
   const goCarousel = (dir: "left" | "right") => {
     const delta = dir === "left" ? -1 : 1;
@@ -434,28 +383,18 @@ const Home = () => {
     return -(carouselIndex * one);
   }, [carouselIndex, cardW]);
 
-  /** ✅ 섹터 리스트 높이: 아이템 수에 맞게(최대 5개까지) 자동 축소 */
-  const sectorListHeightPx = useMemo(() => {
-    const visible = Math.max(1, Math.min(5, sectorItems.length || 1));
-    const rowH = 44;
-    const gapH = 4; // space-y-1
-    return visible * rowH + Math.max(0, visible - 1) * gapH;
-  }, [sectorItems.length]);
-
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        {/* ✅ 뉴스 분석 모달 */}
+        {/* 뉴스 분석 모달 */}
         <NewsInsightModal open={detailOpen} item={detailItem} onClose={closeDetail} />
 
         {/* 상단 채팅 입력 */}
-        {/* Chatbot Section with Gradient */}
         <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#E2F1FF] via-[#EEF2FF] to-[#FCE7F3] p-8 py-16 text-center ring-1 ring-black/5 sm:px-12">
           {/* Header */}
           <div className="mx-auto flex max-w-2xl flex-col items-center justify-center">
             <div className="mb-2 flex items-center gap-2">
-              {/* Logo Icon Placeholder: Terminal Icon */}
-              <img src={HomeLogo} alt="DecodeX Logo" className="w-8 h-8 object-contain" />
+              <img src={HomeLogo} alt="DecodeX Logo" className="h-8 w-8 object-contain" />
               <h1 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">DecodeX</h1>
             </div>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-600 sm:text-base">
@@ -463,107 +402,28 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Feature Cards */}
+          {/* Feature Cards (JSX 태그 불일치 수정) */}
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
-            {[
-              {
-                label: "오늘의 뉴스 해석",
-                color: "text-[#06B6D4]",
-                bg: "bg-[#06B6D4]",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
-                  </svg>
-                ),
-              },
-              {
-                label: "투자 판단 도움",
-                color: "text-[#8B5CF6]",
-                bg: "bg-[#8B5CF6]",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                    <polyline points="16 7 22 7 22 13" />
-                  </svg>
-                ),
-              },
-              {
-                label: "용어 & 맥락 설명",
-                color: "text-[#F59E0B]",
-                bg: "bg-[#F59E0B]",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                  </svg>
-                ),
-              },
-              {
-                label: "관심 뉴스 추천",
-                color: "text-[#EC4899]",
-                bg: "bg-[#EC4899]",
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                    <path d="M12 17h.01" />
-                  </svg>
-                ),
-              },
-            ].map((item, idx) => (
-              <div
+            {FEATURE_CARDS.map((item, idx) => (
+              <button
                 key={idx}
+                type="button"
+                onClick={() => goChatbot(item.prompt)}
                 className="group relative flex flex-col items-start justify-between gap-3 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-md"
+                title={item.label}
               >
-                {/* Gradient Blur Effect on Icon */}
                 <div className={`absolute -right-4 -top-4 h-16 w-16 rounded-full blur-2xl opacity-20 ${item.bg}`} />
-                <div className={`rounded-xl p-2.5 bg-neutral-50 ${item.color} ring-1 ring-black/5`}>{item.icon}</div>
+                <div className={`rounded-xl bg-neutral-50 p-2.5 ring-1 ring-black/5 ${item.color}`}>{item.icon}</div>
                 <span className="text-sm font-semibold text-neutral-700 group-hover:text-neutral-900">{item.label}</span>
-              </div>
+              </button>
             ))}
           </div>
 
           {/* Search Bar */}
           <div className="mx-auto mt-10 max-w-2xl">
-            <div className="relative group">
+            <div className="group relative">
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-200/50 via-purple-200/50 to-pink-200/50 blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-              <div className="relative flex items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-shadow focus-within:ring-2 focus-within:ring-[#216BFF]/20 hover:shadow-md">
+              <div className="relative flex items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-[#216BFF]/20">
                 <input
                   type="text"
                   value={chatDraft}
@@ -578,8 +438,10 @@ const Home = () => {
                   className="h-14 w-full bg-transparent px-6 text-base text-neutral-900 outline-none placeholder:text-neutral-400"
                 />
                 <button
+                  type="button"
                   onClick={() => goChatbot(chatDraft)}
                   className="mr-2 rounded-full p-2.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-[#216BFF]"
+                  aria-label="search"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -622,7 +484,9 @@ const Home = () => {
                 트렌드 데이터를 불러오지 못했습니다. {trendErr}
               </div>
             ) : trendTabs.length === 0 ? (
-              <div className="rounded-2xl bg-white p-4 text-sm text-neutral-600 ring-1 ring-black/5">표시할 트렌드 키워드가 없습니다.</div>
+              <div className="rounded-2xl bg-white p-4 text-sm text-neutral-600 ring-1 ring-black/5">
+                표시할 트렌드 키워드가 없습니다.
+              </div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {trendTabs.map((t) => {
@@ -699,9 +563,12 @@ const Home = () => {
                       e.preventDefault();
                     }}
                   >
-                    <div className="flex gap-4 will-change-transform" style={{ transform: `translateX(${translateX}px)`, transition: "transform 220ms ease" }}>
+                    <div
+                      className="flex gap-4 will-change-transform"
+                      style={{ transform: `translateX(${translateX}px)`, transition: "transform 220ms ease" }}
+                    >
                       {activeTab.news.map((n, idx) => (
-                        <div key={`${activeTab.id}:${idx}`} className="shrink-0 w-[320px] sm:w-[340px] lg:w-[360px]">
+                        <div key={`${activeTab.id}:${idx}`} className="w-[320px] shrink-0 sm:w-[340px] lg:w-[360px]">
                           <TrendNewsCard item={n} onOpen={openDetail} />
                         </div>
                       ))}
@@ -710,96 +577,15 @@ const Home = () => {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl bg-white p-4 text-sm text-neutral-600 ring-1 ring-black/5">선택한 키워드에 대한 뉴스가 없습니다.</div>
+              <div className="rounded-2xl bg-white p-4 text-sm text-neutral-600 ring-1 ring-black/5">
+                선택한 키워드에 대한 뉴스가 없습니다.
+              </div>
             )}
           </div>
         </div>
 
-        {/* 산업으로 보는 뉴스 */}
-        <div className="mt-6">
-          <SectionTitle title="산업으로 보는 뉴스" />
-
-          <div className="mt-4 rounded-2xl bg-white p-3 ring-1 ring-black/10">
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-12">
-              {/* Left */}
-              <div className="lg:col-span-4">
-                <div className="h-full rounded-2xl bg-white ring-1 ring-black/10">
-                  <div className="flex items-center justify-between px-3.5 pt-3">
-                    <div className="text-[14px] font-semibold text-neutral-900">섹터</div>
-                    <div className="flex items-center gap-1.5">
-                      <SectorScrollButton dir="up" disabled={!canSectorItemsUp} onClick={() => scrollListBy(sectorItemsRef.current, "up")} />
-                      <SectorScrollButton dir="down" disabled={!canSectorItemsDown} onClick={() => scrollListBy(sectorItemsRef.current, "down")} />
-                    </div>
-                  </div>
-
-                  <div className="p-2.5">
-                    {sectorLoading ? (
-                      <div className="space-y-1.5">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <div key={i} className="h-9 rounded-lg bg-neutral-50 ring-1 ring-black/5" />
-                        ))}
-                      </div>
-                    ) : sectorErr ? (
-                      <div className="rounded-2xl bg-white p-3 text-sm text-neutral-600 ring-1 ring-black/5">
-                        섹터 목록을 불러오지 못했습니다. {sectorErr}
-                      </div>
-                    ) : sectorItems.length === 0 ? (
-                      <div className="rounded-2xl bg-white p-3 text-sm text-neutral-600 ring-1 ring-black/5">표시할 섹터가 없습니다.</div>
-                    ) : (
-                      <div
-                        ref={sectorItemsRef}
-                        className={classNames("space-y-1 overflow-y-auto pr-1")}
-                        style={{
-                          height: sectorListHeightPx,
-                          maxHeight: 220,
-                        }}
-                      >
-                        {sectorItems.map((s) => (
-                          <SectorLeftItem key={s.sector} active={s.sector === activeSector} label={s.label} onClick={() => setActiveSector(s.sector)} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right */}
-              <div className="lg:col-span-8">
-                <div className="relative h-full rounded-2xl bg-white ring-1 ring-black/10">
-                  <div className="flex items-center justify-between px-3.5 pt-3">
-                    <div className="text-[15px] font-semibold text-neutral-900">{activeSectorLabel}</div>
-                    <div className="flex items-center gap-1.5">
-                      <SectorScrollButton dir="up" disabled={!canSectorUp} onClick={() => scrollListBy(sectorNewsListRef.current, "up")} />
-                      <SectorScrollButton dir="down" disabled={!canSectorDown} onClick={() => scrollListBy(sectorNewsListRef.current, "down")} />
-                    </div>
-                  </div>
-
-                  <div className="px-3.5 pb-3 pt-1.5">
-                    {sectorNewsLoading ? (
-                      <div className="space-y-2">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <div key={i} className="h-10 rounded-lg bg-neutral-50 ring-1 ring-black/5" />
-                        ))}
-                      </div>
-                    ) : sectorNewsErr ? (
-                      <div className="rounded-2xl bg-white p-3 text-sm text-neutral-600 ring-1 ring-black/5">
-                        섹터 뉴스를 불러오지 못했습니다. {sectorNewsErr}
-                      </div>
-                    ) : sectorNews.length === 0 ? (
-                      <div className="rounded-2xl bg-white p-3 text-sm text-neutral-600 ring-1 ring-black/5">해당 섹터의 뉴스가 없습니다.</div>
-                    ) : (
-                      <div ref={sectorNewsListRef} className={classNames("mt-1 overflow-y-auto pr-1", "h-[210px] sm:h-[230px] lg:h-[240px]")}>
-                        {sectorNews.slice(0, 30).map((row) => (
-                          <SectorNewsRowItem key={row.id} row={row} onOpen={openDetail} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* 산업(Theme)으로 보는 뉴스 */}
+        <ThemeNewsSelection />
 
         {/* 오늘의 증시 */}
         <div className="mt-6">
