@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { classNames, getHost, getApiBase } from "../utils";
 
+import NewsDetailModal from "../../../components/News/NewsDetailModal";
+import type { NewsItem as ModalNewsItem } from "../../../data/newsMockData";
+
 type ThemeItem = {
   key: string;
   label: string;
@@ -57,7 +60,7 @@ const THEME_FALLBACK_LABELS: Record<string, { ko: string; en: string }> = {
   BIO_HEALTH: { ko: "바이오/건강", en: "Bio/Health" },
   AUTO: { ko: "자동차", en: "Automobile" },
   ETC: { ko: "기타", en: "ETC" },
-  GREEN_ENERGY: { ko: "친환경 에너지", en: "Green Energy" },
+  GREEN_ENERGY: { ko: "친환경 / 석유 에너지", en: "Green / Oil Energy" },
   FINANCE_HOLDING: { ko: "금융/지주", en: "Finance/Holding" },
 };
 
@@ -160,16 +163,15 @@ function ScrollHint({
   if (!show) return null;
   const basePos = position === "left" ? "left-2 top-2" : "right-2 top-2";
 
-  const base =
-    classNames(
-      "pointer-events-none absolute z-10 flex flex-col items-center",
-      basePos,
-      "rounded-full border border-white/60 bg-white/55 shadow-sm backdrop-blur",
-      "px-1 py-1",
-      "opacity-30"
-    );
+  const base = classNames(
+    "pointer-events-none absolute z-10 flex flex-col items-center",
+    basePos,
+    "rounded-full border border-white/60 bg-white/55 shadow-sm backdrop-blur",
+    "px-1 py-1",
+    "opacity-30"
+  );
 
-  const iconBase = "h-3 w-3"; // ✅ 조금 더 작게
+  const iconBase = "h-3 w-3";
   const upCls = canUp ? "opacity-100" : "opacity-40";
   const downCls = canDown ? "opacity-100" : "opacity-40";
 
@@ -205,6 +207,31 @@ function ScrollHint({
 const THEME_LIST_ENDPOINT = "/news/themes/";
 const THEME_NEWS_ENDPOINT = "/news/by-theme/";
 
+function toModalNewsItem(n: ThemeNewsItem): ModalNewsItem {
+  // ✅ NewsDetailModal이 기대하는 필드명: imageUrl, originUrl, date, tags ...
+  return {
+    id: n.id,
+    title: n.title,
+    summary: n.summary,
+    date: n.published_at
+      ? (() => {
+          const d = new Date(n.published_at);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const hours = String(d.getHours()).padStart(2, "0");
+          const minutes = String(d.getMinutes()).padStart(2, "0");
+          return `${year}-${month}-${day} ${hours}:${minutes}`;
+        })()
+      : "날짜 미상",
+    tags: (n.tags && n.tags.length ? n.tags : []).slice(0),
+    imageUrl:
+      n.image_url ||
+      "https://images.unsplash.com/photo-1611974765270-ca1258822981?w=800&auto=format&fit=crop",
+    originUrl: n.url,
+  } as ModalNewsItem;
+}
+
 export function ThemeNewsSelection() {
   const [themes, setThemes] = useState<ThemeItem[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<string>("SEMICONDUCTOR_AI");
@@ -216,13 +243,17 @@ export function ThemeNewsSelection() {
   const [themeError, setThemeError] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
 
+  // ✅ 모달 상태 추가
+  const [selectedNews, setSelectedNews] = useState<ModalNewsItem | null>(null);
+
   /**
-   * 좌/우 스크롤 패널 높이 동일 
+   * 좌/우 스크롤 패널 높이 동일
    */
   const VISIBLE_COUNT = 4;
   const THEME_CARD_H = 56; // h-14
   const GAP = 8; // space-y-2
-  const PANEL_H = THEME_CARD_H * VISIBLE_COUNT + GAP * (VISIBLE_COUNT - 1); // 248
+  const PANEL_H =
+    THEME_CARD_H * VISIBLE_COUNT + GAP * (VISIBLE_COUNT - 1); // 248
 
   /**
    * 폭 비율
@@ -449,16 +480,17 @@ export function ThemeNewsSelection() {
                   const host = getHost(n.url);
 
                   return (
-                    <a
+                    <button
                       key={n.id}
-                      href={n.url}
-                      target="_blank"
-                      rel="noreferrer"
+                      type="button"
+                      onClick={() => setSelectedNews(toModalNewsItem(n))}
                       className={classNames(
-                        "block rounded-2xl border border-neutral-200 bg-white",
-                        "p-3 transition hover:bg-neutral-50 hover:border-neutral-300"
+                        "w-full text-left block rounded-2xl border border-neutral-200 bg-white",
+                        "p-3 transition hover:bg-neutral-50 hover:border-neutral-300",
+                        "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-2"
                       )}
                       title={n.title}
+                      aria-label={`뉴스 상세 보기: ${n.title}`}
                     >
                       <div className="flex gap-3">
                         {n.image_url ? (
@@ -508,7 +540,7 @@ export function ThemeNewsSelection() {
                           </div>
                         </div>
                       </div>
-                    </a>
+                    </button>
                   );
                 })}
 
@@ -522,6 +554,11 @@ export function ThemeNewsSelection() {
           </div>
         </div>
       </div>
+
+      {/* ✅ News 페이지와 동일 UX: 상세 모달 */}
+      {selectedNews && (
+        <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />
+      )}
     </section>
   );
 }
