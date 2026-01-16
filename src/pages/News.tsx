@@ -145,7 +145,7 @@ const News = () => {
                         ) : aiBriefingNews.length > 0 ? (
                             aiBriefingNews.slice(0, 3).map((item) => (
                                 <div key={item.id} className="h-full">
-                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} gtmNewsType="personal" />
                                 </div>
                             ))
                         ) : (
@@ -188,7 +188,7 @@ const News = () => {
                         ) : keywordNews.length > 0 ? (
                             keywordNews.slice(0, 3).map((item) => (
                                 <div key={item.id} className="h-full">
-                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} />
+                                    <NewsCard item={item} onClick={() => setSelectedNews(item)} gtmNewsType="personal" />
                                 </div>
                             ))
                         ) : (

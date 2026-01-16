@@ -541,6 +541,7 @@ const Onboarding = () => {
                 ? "bg-gray-300 cursor-not-allowed shadow-none"
                 : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
                 }`}
+              data-gtm-step={currentStep}
             >
               {currentStep === 5 ? (isEditing ? "수정 완료" : "완료") : "다음"}
             </button>
