@@ -4,14 +4,16 @@ import HomeLogo from "../assets/Logo.svg";
 
 import { ThemeNewsSelection } from "./home/components/ThemeNewsSelection";
 
-import type { TrendTab, TrendKeywordsResponse, TodayMarketResponse, NewsDetailItem } from "./home/types";
+import type { TrendTab, TrendKeywordsResponse, TodayMarketResponse } from "./home/types";
 import { classNames } from "./home/utils";
 import { fetchTodayMarket, fetchTrendKeywords } from "./home/api";
 
 import { SectionTitle } from "./home/components/SectionTitle";
-import { NewsInsightModal } from "./home/components/NewsInsightModal";
 import { TrendNewsCard, CarouselArrowButton } from "./home/components/TrendNewsCarousel";
 import { MarketMoversCard } from "./home/components/MarketMoversCard";
+
+import NewsDetailModal from "../components/News/NewsDetailModal";
+import type { NewsItem as ModalNewsItem } from "../data/newsMockData";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -76,19 +78,7 @@ const Home = () => {
     return Math.max(0, Math.min(idx, maxIdx));
   };
 
-  /**  뉴스 분석 모달 */
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailItem, setDetailItem] = useState<NewsDetailItem | null>(null);
-
-  const openDetail = (it: NewsDetailItem) => {
-    setDetailItem(it);
-    setDetailOpen(true);
-  };
-
-  const closeDetail = () => {
-    setDetailOpen(false);
-    setDetailItem(null);
-  };
+  const [selectedTrendNews, setSelectedTrendNews] = useState<ModalNewsItem | null>(null);
 
   const goChatbot = (text: string) => {
     const t = text.trim();
@@ -107,19 +97,9 @@ const Home = () => {
         label: "오늘의 뉴스 해석",
         color: "text-[#06B6D4]",
         bg: "bg-[#06B6D4]",
-        prompt:
-          "오늘 주요 경제/증시 뉴스를 3~5개로 요약하고, 초보 투자자 관점에서 핵심 포인트와 주의할 점까지 설명해줘.",
+        prompt: "오늘 주요 경제/증시 뉴스를 3~5개로 요약하고, 초보 투자자 관점에서 핵심 포인트와 주의할 점까지 설명해줘.",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
           </svg>
         ),
@@ -131,16 +111,7 @@ const Home = () => {
         prompt:
           "오늘 시장 흐름(코스피/코스닥/나스닥) 기준으로 초보 투자자가 체크해야 할 리스크(금리, 환율, 실적, 섹터 순환)를 정리하고, 단기/중기 관점으로 대응 전략을 제안해줘.",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
             <polyline points="16 7 22 7 22 13" />
           </svg>
@@ -153,16 +124,7 @@ const Home = () => {
         prompt:
           "오늘 뉴스에서 자주 나오는 경제/금융 용어(예: 금리 인하, CPI, 실적 가이던스, PER/PBR, 유동성)를 초보자 수준으로 예시와 함께 쉽게 설명해줘.",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
           </svg>
@@ -172,19 +134,9 @@ const Home = () => {
         label: "관심 뉴스 추천",
         color: "text-[#EC4899]",
         bg: "bg-[#EC4899]",
-        prompt:
-          "내 관심사(예: 반도체, 2차전지, AI, 환율, 금리)를 물어본 다음, 오늘 뉴스 중에서 관련 뉴스 5개를 추천하고 왜 중요한지 한 줄씩 설명해줘.",
+        prompt: "내 관심사(예: 반도체, 2차전지, AI, 환율, 금리)를 물어본 다음, 오늘 뉴스 중에서 관련 뉴스 5개를 추천하고 왜 중요한지 한 줄씩 설명해줘.",
         icon: (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
             <path d="M12 17h.01" />
@@ -227,10 +179,9 @@ const Home = () => {
       sessionsAbortRef.current = controller;
 
       try {
-        const res = await fetch(
-          `/api/markets/sessions/?pre_open_grace_min=5&post_close_grace_min=10&markets=KOSDAQ,KOSPI,NASDAQ`,
-          { signal: controller.signal }
-        );
+        const res = await fetch(`/api/markets/sessions/?pre_open_grace_min=5&post_close_grace_min=10&markets=KOSDAQ,KOSPI,NASDAQ`, {
+          signal: controller.signal,
+        });
         if (!res.ok) return;
         const data: MarketSessionsResponse = await res.json();
         setSessions(data.sessions);
@@ -386,8 +337,7 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        {/* 뉴스 분석 모달 */}
-        <NewsInsightModal open={detailOpen} item={detailItem} onClose={closeDetail} />
+        {selectedTrendNews && <NewsDetailModal item={selectedTrendNews} onClose={() => setSelectedTrendNews(null)} />}
 
         {/* 상단 채팅 입력 */}
         <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#E2F1FF] via-[#EEF2FF] to-[#FCE7F3] p-8 py-16 text-center ring-1 ring-black/5 sm:px-12">
@@ -395,14 +345,16 @@ const Home = () => {
           <div className="mx-auto flex max-w-2xl flex-col items-center justify-center">
             <div className="mb-2 flex items-center gap-2">
               <img src={HomeLogo} alt="DecodeX Logo" className="h-8 w-8 object-contain" />
-              <h1 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">DecodeX</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
+                DecodeX
+              </h1>
             </div>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-600 sm:text-base">
               초보 투자자를 위한 뉴스 해석 AI{"\n"}복잡한 경제 뉴스를 한눈에 이해하세요.
             </p>
           </div>
 
-          {/* Feature Cards (JSX 태그 불일치 수정) */}
+          {/* Feature Cards */}
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
             {FEATURE_CARDS.map((item, idx) => (
               <button
@@ -443,16 +395,7 @@ const Home = () => {
                   className="mr-2 rounded-full p-2.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-[#216BFF]"
                   aria-label="search"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-6 w-6"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.3-4.3" />
                   </svg>
@@ -569,7 +512,7 @@ const Home = () => {
                     >
                       {activeTab.news.map((n, idx) => (
                         <div key={`${activeTab.id}:${idx}`} className="w-[320px] shrink-0 sm:w-[340px] lg:w-[360px]">
-                          <TrendNewsCard item={n} onOpen={openDetail} />
+                          <TrendNewsCard item={n} onOpenModal={(modalItem) => setSelectedTrendNews(modalItem)} />
                         </div>
                       ))}
                     </div>
@@ -591,27 +534,9 @@ const Home = () => {
         <div className="mt-6">
           <SectionTitle title="오늘의 증시" />
           <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <MarketMoversCard
-              title="코스닥"
-              marketLabel="KOSDAQ"
-              topGainer={kosdaqTopGainer}
-              topLoser={kosdaqTopLoser}
-              sessionStatus={sessions?.KOSDAQ?.status}
-            />
-            <MarketMoversCard
-              title="코스피"
-              marketLabel="KOSPI"
-              topGainer={kospiTopGainer}
-              topLoser={kospiTopLoser}
-              sessionStatus={sessions?.KOSPI?.status}
-            />
-            <MarketMoversCard
-              title="나스닥"
-              marketLabel="NASDAQ"
-              topGainer={nasdaqTopGainer}
-              topLoser={nasdaqTopLoser}
-              sessionStatus={sessions?.NASDAQ?.status}
-            />
+            <MarketMoversCard title="코스닥" marketLabel="KOSDAQ" topGainer={kosdaqTopGainer} topLoser={kosdaqTopLoser} sessionStatus={sessions?.KOSDAQ?.status} />
+            <MarketMoversCard title="코스피" marketLabel="KOSPI" topGainer={kospiTopGainer} topLoser={kospiTopLoser} sessionStatus={sessions?.KOSPI?.status} />
+            <MarketMoversCard title="나스닥" marketLabel="NASDAQ" topGainer={nasdaqTopGainer} topLoser={nasdaqTopLoser} sessionStatus={sessions?.NASDAQ?.status} />
           </div>
         </div>
       </div>

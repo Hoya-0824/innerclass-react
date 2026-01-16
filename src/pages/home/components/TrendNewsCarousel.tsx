@@ -1,62 +1,102 @@
 // src/pages/home/components/TrendNewsCarousel.tsx
-import { classNames, getHost } from "../utils";
-import type { TrendNewsItem, NewsDetailItem } from "../types";
+import { getHost } from "../utils";
+import type { TrendNewsItem } from "../types";
+import type { NewsItem as ModalNewsItem } from "../../../data/newsMockData";
 
+function formatKSTForModal(dateLike?: string) {
+  if (!dateLike) return "날짜 미상";
+  const d = new Date(dateLike);
+  if (Number.isNaN(d.getTime())) return String(dateLike);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+}
+
+function toModalItemFromTrend(n: TrendNewsItem): ModalNewsItem {
+  const host = getHost(n.link);
+
+  return {
+    id: n.id, // ✅ TrendKeywordNews.id 그대로 전달
+    title: n.title,
+    summary: n.summary,
+    date: formatKSTForModal(n.published_at),
+    tags: [
+      host || "news",
+      n.related_stock_name ? `관련: ${n.related_stock_name}` : "",
+      n.related_stock_code ? `코드: ${n.related_stock_code}` : "",
+    ].filter(Boolean),
+    imageUrl:
+      n.image_url ||
+      "https://images.unsplash.com/photo-1611974765270-ca1258822981?w=800&auto=format&fit=crop",
+    originUrl: n.link,
+  } as ModalNewsItem;
+}
+
+/**
+ * TrendNewsCard
+ * - 요청사항: 아래 NewsCard와 "레이아웃/스타일" 동일하게 맞춤
+ *   (bg-white, border-gray-100, rounded-xl, h-40 이미지, p-5, title lg, date, summary clamp-3, tags chip)
+ */
 export function TrendNewsCard({
   item,
-  onOpen,
+  onOpenModal,
 }: {
   item: TrendNewsItem;
-  onOpen: (detail: NewsDetailItem) => void;
+  onOpenModal: (modalItem: ModalNewsItem) => void;
 }) {
-  const host = getHost(item.link);
-  const hasImg = Boolean(item.image_url);
+  const modalItem = toModalItemFromTrend(item);
 
   return (
     <button
       type="button"
-      onClick={() =>
-        onOpen({
-          id: item.id,                 // ✅ TrendKeywordNews.id
-          analysisSource: "reco",      // ✅ 핵심: reco 분석 API 사용
-          title: item.title,
-          summary: item.summary,
-          imageUrl: item.image_url || undefined,
-          date: item.published_at,
-          originUrl: item.link,
-          tags: [
-            host || "news",
-            item.related_stock_name ? `관련: ${item.related_stock_name}` : "",
-            item.related_stock_code ? `코드: ${item.related_stock_code}` : "",
-          ].filter(Boolean),
-          related: { name: item.related_stock_name, code: item.related_stock_code },
-        })
-      }
-      className="group w-full overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition-shadow hover:shadow-md"
+      onClick={() => onOpenModal(modalItem)}
+      title={item.title}
+      aria-label={`트렌드 뉴스 상세 보기: ${item.title}`}
+      className="bg-white border text-left border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer"
     >
-      <div className="relative aspect-[16/9] bg-neutral-100">
-        {hasImg ? (
+      {/* Image Placeholder or Actual Image */}
+      <div className="h-40 bg-gray-100 flex items-center justify-center relative overflow-hidden">
+        {modalItem.imageUrl ? (
           <img
-            src={item.image_url}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            src={modalItem.imageUrl}
+            alt={modalItem.title}
+            className="w-full h-full object-cover"
             loading="lazy"
             onError={(e) => {
+              // 이미지 로드 실패 시 "이미지" 플레이스홀더가 보이도록 img만 숨김
               (e.currentTarget as HTMLImageElement).style.display = "none";
             }}
           />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/0 to-black/0 opacity-0 transition-opacity group-hover:opacity-100" />
+        ) : (
+          <span className="text-gray-400 text-sm font-medium">이미지</span>
+        )}
       </div>
 
-      <div className="p-3">
-        <div className="line-clamp-2 text-sm font-semibold text-neutral-900">{item.title}</div>
-        <div className="mt-2 line-clamp-2 text-xs text-neutral-600">{item.summary}</div>
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="font-bold text-lg mb-1 line-clamp-2 leading-tight text-gray-900 border-none">
+          {modalItem.title}
+        </h3>
+        <span className="text-xs text-gray-400 mb-3 block">{modalItem.date}</span>
 
-        <div className="mt-3 flex items-center gap-2 text-xs text-neutral-500">
-          {host ? <span className="truncate">{host}</span> : null}
-          {host && item.published_at ? <span className="text-neutral-300">•</span> : null}
-          {item.published_at ? <span className="shrink-0">{item.published_at}</span> : null}
+        <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed flex-1">
+          {modalItem.summary}
+        </p>
+
+        <div className="flex flex-wrap gap-2 mt-auto">
+          {modalItem.tags?.map((tag, idx) => (
+            <span
+              key={`${tag}-${idx}`}
+              className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md hover:bg-gray-200 transition-colors cursor-pointer font-medium"
+              // 태그 클릭이 카드 클릭(모달 오픈)으로 전파되는 걸 막고 싶으면 아래 주석 해제
+              // onClick={(e) => e.stopPropagation()}
+              // onMouseDown={(e) => e.stopPropagation()}
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       </div>
     </button>
@@ -87,10 +127,12 @@ export function CarouselArrowButton({
       aria-label={dir === "left" ? "이전" : "다음"}
       disabled={disabled}
       onClick={onClick}
-      className={classNames(base, pos, state)}
+      className={`${base} ${pos} ${state}`}
     >
       <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#216BFF]/10">
-        <span className="text-xl leading-none text-neutral-800">{dir === "left" ? "‹" : "›"}</span>
+        <span className="text-xl leading-none text-neutral-800">
+          {dir === "left" ? "‹" : "›"}
+        </span>
       </span>
     </button>
   );
