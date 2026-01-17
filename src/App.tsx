@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import GoogleCallback from './pages/GoogleCallback';
 import MyPage from './pages/MyPage';
+import Footer from './components/Footer/Footer';
 
 const AppContent = () => {
   const location = useLocation();
@@ -34,6 +35,7 @@ const AppContent = () => {
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/oauth/callback/google" element={<GoogleCallback />} />
           </Routes>
+          <Footer />
         </main>
       )}
     </div>
