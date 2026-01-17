@@ -178,20 +178,19 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                     </div>
 
                     {/* 무슨 말이야? Section */}
-                    <div className="bg-gray-50 rounded-2xl p-5 mb-6">
-                        <div className="flex items-start gap-4">
-                            <img src={woman1Avatar} alt="캐릭터" className="w-25 h-25 flex-shrink-0" />
+                    <div className="bg-[#F8F9FA] rounded-3xl p-6 mb-6">
+                        <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">
-                                <span className="inline-block bg-yellow-400 text-gray-900 text-sm font-bold px-4 py-1.5 rounded-full mb-3">
+                                <span className="inline-block bg-[#3B82F6] text-white text-sm font-bold px-4 py-2 rounded-lg mb-4 shadow-sm">
                                     무슨 말이야?
                                 </span>
                                 {isLoading ? (
                                     <SkeletonBlock lines={2} />
                                 ) : analysis ? (
-                                    <ul className="space-y-1.5 text-sm text-gray-700">
+                                    <ul className="space-y-2 text-sm text-gray-800 font-medium leading-relaxed">
                                         {analysis.what_is_this.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-gray-400 mt-1">•</span>
+                                                <span className="text-[#3B82F6] mt-1.5">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -200,51 +199,60 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                     <p className="text-sm text-gray-600">{item.summary}</p>
                                 )}
                             </div>
+                            <div className="relative flex-shrink-0">
+                                <img src={woman1Avatar} alt="캐릭터" className="w-24 h-24" />
+                            </div>
                         </div>
                     </div>
 
                     {/* 이게 왜 중요해? Section */}
-                    <div className="bg-gray-50 rounded-2xl p-5 mb-6">
-                        <div className="flex items-start gap-4">
-                            <img src={woman2Avatar} alt="캐릭터" className="w-25 h-25 flex-shrink-0" />
+                    <div className="bg-[#F8F9FA] rounded-3xl p-6 mb-6">
+                        <div className="flex justify-between items-start gap-4">
                             <div className="flex-1">
-                                <span className="inline-block bg-orange-400 text-white text-sm font-bold px-4 py-1.5 rounded-full mb-3">
+                                <span className="inline-block bg-[#3B82F6] text-white text-sm font-bold px-4 py-2 rounded-lg mb-4 shadow-sm">
                                     이게 왜 중요해?
                                 </span>
                                 {isLoading ? (
                                     <SkeletonBlock lines={3} />
                                 ) : analysis ? (
-                                    <ul className="space-y-1.5 text-sm text-gray-700">
+                                    <ul className="space-y-2 text-sm text-gray-800 font-medium leading-relaxed">
                                         {analysis.why_important.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-gray-400 mt-1">•</span>
+                                                <span className="text-[#3B82F6] mt-1.5">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
                                     </ul>
                                 ) : null}
                             </div>
+                            <div className="relative flex-shrink-0">
+                                <img src={woman2Avatar} alt="캐릭터" className="w-24 h-24" />
+                            </div>
                         </div>
                     </div>
 
                     {/* 이 뉴스가 주식에 주는 영향은? Section */}
                     <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 mb-4 text-base">
+                        <h3 className="font-bold text-gray-900 mb-4 text-xl">
                             이 뉴스가 주식에 주는 영향은?
                         </h3>
 
                         {isLoading ? (
                             <SkeletonBlock lines={4} />
                         ) : analysis ? (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-4">
                                 {/* 긍정적인 점 */}
-                                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
-                                    <img src={positiveIcon} alt="긍정" className="w-7 h-7 mb-1" />
-                                    <h4 className="text-sm font-semibold text-green-600">긍정적인 점</h4>
-                                    <ul className="space-y-1.5 text-sm text-gray-600">
+                                <div className="bg-[#ECFDF5] rounded-3xl p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-8 h-8 rounded-full bg-[#D1FAE5] flex items-center justify-center">
+                                            <img src={positiveIcon} alt="긍정" className="w-5 h-5" />
+                                        </div>
+                                        <h4 className="text-base font-bold text-[#059669]">긍정적인 점</h4>
+                                    </div>
+                                    <ul className="space-y-2 text-sm text-gray-800 font-medium">
                                         {analysis.stock_impact.positives.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-green-400 mt-1">•</span>
+                                                <span className="text-[#059669] mt-1.5">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -252,15 +260,17 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                 </div>
 
                                 {/* 주의할 점 */}
-                                <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-100">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <img src={warningIcon} alt="주의" className="w-6 h-6" />
-                                        <h4 className="text-sm font-semibold text-orange-500">주의할 점</h4>
+                                <div className="bg-[#FFF1F2] rounded-3xl p-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-8 h-8 rounded-full bg-[#FFE4E6] flex items-center justify-center">
+                                            <img src={warningIcon} alt="주의" className="w-5 h-5" />
+                                        </div>
+                                        <h4 className="text-base font-bold text-[#E11D48]">주의할 점</h4>
                                     </div>
-                                    <ul className="space-y-1.5 text-sm text-gray-600">
+                                    <ul className="space-y-2 text-sm text-gray-800 font-medium">
                                         {analysis.stock_impact.warnings.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-orange-400 mt-1">•</span>
+                                                <span className="text-[#E11D48] mt-1.5">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
