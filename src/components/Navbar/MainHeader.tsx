@@ -9,9 +9,9 @@ const MainHeader = () => {
   const [username, setUsername] = useState<string | null>(null);
 
   const menuItems = [
-    { name: "홈", path: "/" },
-    { name: "챗봇 상담하기", path: "/chatbot" },
-    { name: "관심 뉴스", path: "/news" },
+    { name: "홈", path: "/", gtm_key: "home" },
+    { name: "챗봇 상담하기", path: "/chatbot", gtm_key: "chat" },
+    { name: "관심 뉴스", path: "/news", gtm_key: "news" },
     // { name: "관심 종목 예측", path: "/prediction" }
   ];
 
@@ -76,7 +76,7 @@ const MainHeader = () => {
     <header className="fixed top-0 left-0 right-0 z-50 flex justify-center py-2 md:py-4">
       <div className="w-[95%] md:w-[90%] max-w-[1600px] bg-white/30 backdrop-blur-md px-4 md:px-10 py-3 md:py-4 rounded-[20px] md:rounded-[30px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-3 md:gap-0">
         <div className="w-full md:w-auto flex justify-between items-center md:mr-20">
-          <Link to="/" className="flex items-center gap-2 cursor-pointer no-underline">
+          <Link to="/" className="flex items-center gap-2 cursor-pointer no-underline" data-gtm-nav="home">
             {/* Simple logo placeholder to match image */}
             {/* Simple logo placeholder to match image */}
             <img src={TopLogo} alt="DecodeX Logo" className="w-8 h-8 object-contain" />
@@ -96,6 +96,7 @@ const MainHeader = () => {
               to={menu.path}
               className={`text-lg font-bold no-underline transition-colors shrink-0 ${location.pathname === menu.path ? 'text-mkBlue' : 'text-black hover:text-mkBlue'
                 }`}
+              data-gtm-nav={menu.gtm_key}
             >
               {menu.name}
             </Link>

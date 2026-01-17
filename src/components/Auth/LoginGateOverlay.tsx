@@ -52,6 +52,7 @@ const LoginGateOverlay = ({
             <button
                 onClick={handleLoginClick}
                 className="relative z-10 px-8 py-3 bg-white border border-gray-300 rounded-full cursor-pointer text-gray-900 font-medium text-sm hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm pointer-events-auto"
+                data-gtm-click="lock_news_lp"
             >
                 로그인 하러 가기
             </button>

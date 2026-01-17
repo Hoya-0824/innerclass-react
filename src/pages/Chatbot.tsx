@@ -62,7 +62,7 @@ async function sendChat(
     try {
       const data = await res.json();
       detail = data.detail ?? detail;
-    } catch {}
+    } catch { }
     throw new Error(detail);
   }
 
@@ -315,10 +315,13 @@ const Chatbot = () => {
 
   // ✅ Home에서 넘어온 draft 자동 전송 로직
   useEffect(() => {
-    if (autoSentRef.current) return;
+    if (autoSentRef.current) {
+      return;
+    }
 
     const draft = sessionStorage.getItem("chatbot_draft")?.trim() ?? "";
     const flag = sessionStorage.getItem("chatbot_autosend");
+
 
     if (!draft) return;
     if (flag !== null && flag !== "1") return;
@@ -374,6 +377,21 @@ const Chatbot = () => {
         setError(e?.message ?? "Chat failed");
       } finally {
         setLoading(false);
+
+        // GTM Check
+        const source = sessionStorage.getItem("chatbot_source");
+        const newsId = sessionStorage.getItem("chatbot_news_id");
+
+        if (source === "news_detail" && newsId) {
+          (window as any).dataLayer = (window as any).dataLayer || [];
+          (window as any).dataLayer.push({
+            event: "chat_message_sent",
+            source: "news_detail",
+            news_id: newsId,
+          });
+          sessionStorage.removeItem("chatbot_source");
+          sessionStorage.removeItem("chatbot_news_id");
+        }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -725,6 +743,7 @@ const Chatbot = () => {
                         disabled={loading || input.trim().length === 0}
                         className="ml-3 p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-40 transition-all"
                         type="button"
+                        data-gtm-click="chat_send"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

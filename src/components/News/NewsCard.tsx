@@ -4,13 +4,15 @@ import type { NewsItem } from '../../data/newsMockData';
 interface NewsCardProps {
     item: NewsItem;
     onClick?: () => void;
+    gtmNewsType?: string;
 }
 
-const NewsCard: React.FC<NewsCardProps> = ({ item, onClick }) => {
+const NewsCard: React.FC<NewsCardProps> = ({ item, onClick, gtmNewsType }) => {
     return (
         <div
             className="bg-white border text-left border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer"
             onClick={onClick}
+            data-gtm-news-type={gtmNewsType}
         >
             {/* Image Placeholder */}
             {/* Image Placeholder or Actual Image */}

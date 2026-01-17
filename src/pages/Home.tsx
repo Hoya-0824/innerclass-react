@@ -388,6 +388,7 @@ const Home = () => {
                   }}
                   placeholder="“금리 인하 뉴스, 주식엔 어떤 영향이야?”"
                   className="h-14 w-full bg-transparent px-6 text-base text-neutral-900 outline-none placeholder:text-neutral-400"
+                  data-gtm-click="main_search_bar"
                 />
                 <button
                   type="button"

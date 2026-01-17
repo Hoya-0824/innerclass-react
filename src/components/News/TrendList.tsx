@@ -12,6 +12,7 @@ const TrendList: React.FC<TrendListProps> = ({ items }) => {
                 <div
                     key={item.id}
                     className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer group"
+                    data-gtm-news-type="common"
                 >
                     <div className="flex-shrink-0 w-24 md:w-28 text-center mr-4">
                         <span className="block bg-gray-200 text-gray-700 text-xs font-bold px-2 py-1 rounded">

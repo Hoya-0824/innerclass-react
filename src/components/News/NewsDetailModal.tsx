@@ -373,6 +373,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                             <button
                                 onClick={() => window.open(item.originUrl, '_blank')}
                                 className="w-full sm:w-auto px-6 py-3 bg-gray-900 cursor-pointer hover:bg-gray-800 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                data-gtm-click="original_link"
                             >
                                 <span>뉴스 원문 보러가기</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -387,9 +388,13 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                 const question = `다음 뉴스 기사에 대해 궁금한 점이 있어.\n\n제목: ${item.title}\n링크: ${item.originUrl || '링크 없음'}\n\n이 기사의 주요 내용과 시사점을 알려줘.`;
                                 sessionStorage.setItem('chatbot_draft', question);
                                 sessionStorage.setItem('chatbot_autosend', '1');
+                                // GTM Context
+                                sessionStorage.setItem('chatbot_source', 'news_detail');
+                                sessionStorage.setItem('chatbot_news_id', String(item.id));
                                 navigate('/chatbot');
                             }}
                             className="w-full sm:w-auto px-6 py-3 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                            data-gtm-action="ai_deep_dive"
                         >
                             <span>챗봇에게 물어보기</span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
