@@ -202,9 +202,9 @@ function _normalizeChipText(x: any): string {
 
 type TopKeywordsPayload =
   | {
-      top_keywords?: string[];
-      counts?: { keyword: string; count: number }[];
-    }
+    top_keywords?: string[];
+    counts?: { keyword: string; count: number }[];
+  }
   | null
   | undefined;
 
@@ -416,14 +416,14 @@ const News = () => {
       summary: item.summary,
       date: item.published_at
         ? (() => {
-            const d = new Date(item.published_at);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            const hh = String(d.getHours()).padStart(2, "0");
-            const mi = String(d.getMinutes()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
-          })()
+          const d = new Date(item.published_at);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mi = String(d.getMinutes()).padStart(2, "0");
+          return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+        })()
         : "날짜 미상",
       tags: item.tags || [item.tag || "뉴스"],
       imageUrl:
@@ -441,21 +441,32 @@ const News = () => {
     return { news: sliced, keywords: response.data.keywords, explain, outlook, top_keywords };
   };
 
+  // ✅ Responsive Page Size
+  const [pageSize, setPageSize] = useState(() => (window.innerWidth < 768 ? 3 : 6));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPageSize(window.innerWidth < 768 ? 3 : 6);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const briefTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(aiBriefingNews.length / PAGE_SIZE)),
-    [aiBriefingNews.length]
+    () => Math.max(1, Math.ceil(aiBriefingNews.length / pageSize)),
+    [aiBriefingNews.length, pageSize]
   );
   const kwTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(keywordNews.length / PAGE_SIZE)),
-    [keywordNews.length]
+    () => Math.max(1, Math.ceil(keywordNews.length / pageSize)),
+    [keywordNews.length, pageSize]
   );
 
   const briefingSlides = useMemo(() => {
     const slides: React.ReactNode[] = [];
-    const total = Math.max(1, Math.ceil(aiBriefingNews.length / PAGE_SIZE));
+    const total = Math.max(1, Math.ceil(aiBriefingNews.length / pageSize));
     for (let p = 0; p < total; p++) {
-      const start = p * PAGE_SIZE;
-      const items = aiBriefingNews.slice(start, start + PAGE_SIZE);
+      const start = p * pageSize;
+      const items = aiBriefingNews.slice(start, start + pageSize);
       slides.push(
         <div key={`brief-slide-${p}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
@@ -467,14 +478,14 @@ const News = () => {
       );
     }
     return slides;
-  }, [aiBriefingNews]);
+  }, [aiBriefingNews, pageSize]);
 
   const keywordSlides = useMemo(() => {
     const slides: React.ReactNode[] = [];
-    const total = Math.max(1, Math.ceil(keywordNews.length / PAGE_SIZE));
+    const total = Math.max(1, Math.ceil(keywordNews.length / pageSize));
     for (let p = 0; p < total; p++) {
-      const start = p * PAGE_SIZE;
-      const items = keywordNews.slice(start, start + PAGE_SIZE);
+      const start = p * pageSize;
+      const items = keywordNews.slice(start, start + pageSize);
       slides.push(
         <div key={`kw-slide-${p}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
@@ -486,7 +497,7 @@ const News = () => {
       );
     }
     return slides;
-  }, [keywordNews]);
+  }, [keywordNews, pageSize]);
 
   useEffect(() => {
     const init = async () => {
@@ -614,7 +625,7 @@ const News = () => {
               <div className="text-center py-10 text-gray-400">AI 브리핑을 불러오는 중입니다...</div>
             ) : aiBriefingNews.length > 0 ? (
               <div className="relative">
-                <SlideRail index={briefPage} childrenSlides={briefingSlides} />
+                <SlideRail index={briefPage} childrenSlides={briefingSlides} onSwipe={(dir) => goBrief(dir)} />
 
                 {showBriefArrows && (
                   <>
@@ -648,11 +659,10 @@ const News = () => {
                   <span
                     key={idx}
                     onClick={() => handleKeywordClick(keyword)}
-                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${
-                      selectedKeyword === keyword
-                        ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
-                        : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
-                    }`}
+                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${selectedKeyword === keyword
+                      ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
+                      }`}
                   >
                     {keyword}
                   </span>
@@ -666,7 +676,7 @@ const News = () => {
               <div className="text-center py-10 text-gray-400">키워드 뉴스를 불러오는 중입니다...</div>
             ) : keywordNews.length > 0 ? (
               <div className="relative">
-                <SlideRail index={kwPage} childrenSlides={keywordSlides} />
+                <SlideRail index={kwPage} childrenSlides={keywordSlides} onSwipe={(dir) => goKw(dir)} />
 
                 {showKwArrows && (
                   <>
@@ -692,7 +702,7 @@ const News = () => {
         {!isLoggedIn && <LoginGateOverlay />}
       </div>
 
-      <section className="mb-16">
+      {/* <section className="mb-16">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 inline-block mr-3">오늘의 트렌드 뉴스</h2>
           <p className="inline-block text-gray-500 text-sm mt-1">지금 시장에 영향을 준 뉴스만 골랐어요</p>
@@ -715,7 +725,7 @@ const News = () => {
             <TrendList items={TREND_VALUE} />
           </div>
         </div>
-      </section>
+      </section> */}
 
       {selectedNews && <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />}
     </div>

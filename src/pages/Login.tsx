@@ -127,7 +127,7 @@ const Login = () => {
                             {/* 소셜 로그인 버튼들 */}
                             <div className={isSignUp ? 'flex flex-col gap-2 sm:gap-3' : 'grid grid-cols-2 gap-2 sm:gap-3'}>
                                 <button
-                                    className="w-full flex justify-center items-center gap-1.5 md:gap-2 py-3 px-2 md:py-4 md:px-4 border border-transparent rounded-xl cursor-pointer shadow-sm text-xs md:text-sm font-bold text-[#191919] bg-[#FEE500] hover:bg-[#FDD835] transition-all duration-200 whitespace-nowrap"
+                                    className="w-full flex justify-center items-center gap-1.5 md:gap-2 py-3.5 px-2 md:py-4 md:px-4 border border-transparent rounded-xl cursor-pointer shadow-sm text-xs md:text-sm font-bold text-[#191919] bg-[#FEE500] hover:bg-[#FDD835] transition-all duration-200 whitespace-nowrap"
                                 >
                                     <svg className="w-4 h-4 md:w-5 md:h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 3C6.48 3 2 6.58 2 11C2 13.03 2.94 14.84 4.5 16.19C4.38 16.8 3.5 19 3.5 19C3.5 19 5.75 18.5 7.15 17.5C8.5 18.5 10.2 19 12 19C17.52 19 22 15.42 22 11C22 6.58 17.52 3 12 3Z" />
