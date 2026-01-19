@@ -190,7 +190,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                     <ul className="space-y-2 text-sm text-gray-800 font-medium leading-relaxed">
                                         {analysis.what_is_this.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-[#3B82F6] mt-1.5">•</span>
+                                                <span className="text-[#3B82F6] ">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -218,7 +218,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                     <ul className="space-y-2 text-sm text-gray-800 font-medium leading-relaxed">
                                         {analysis.why_important.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-[#3B82F6] mt-1.5">•</span>
+                                                <span className="text-[#3B82F6]">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -252,7 +252,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                     <ul className="space-y-2 text-sm text-gray-800 font-medium">
                                         {analysis.stock_impact.positives.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-[#059669] mt-1.5">•</span>
+                                                <span className="text-[#059669]">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
@@ -270,7 +270,7 @@ const NewsDetailModal: React.FC<NewsDetailModalProps> = ({ item, onClose }) => {
                                     <ul className="space-y-2 text-sm text-gray-800 font-medium">
                                         {analysis.stock_impact.warnings.map((item, idx) => (
                                             <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-[#E11D48] mt-1.5">•</span>
+                                                <span className="text-[#E11D48]">•</span>
                                                 <span>{item}</span>
                                             </li>
                                         ))}
