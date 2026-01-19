@@ -12,7 +12,7 @@ import { SectionTitle } from "./home/components/SectionTitle";
 import { TrendNewsCard, CarouselArrowButton } from "./home/components/TrendNewsCarousel";
 import { MarketMoversCard } from "./home/components/MarketMoversCard";
 
-import NewsDetailModal from "../components/News/NewsDetailModal";
+import NewsDetailModal_keyword from "../components/News/NewsDetailModal_keyword";
 import type { NewsItem as ModalNewsItem } from "../data/newsMockData";
 
 const Home = () => {
@@ -337,7 +337,7 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       <div className="mx-auto max-w-6xl px-4 py-10">
-        {selectedTrendNews && <NewsDetailModal item={selectedTrendNews} onClose={() => setSelectedTrendNews(null)} />}
+        {selectedTrendNews && <NewsDetailModal_keyword item={selectedTrendNews} onClose={() => setSelectedTrendNews(null)} />}
 
         {/* 상단 채팅 입력 */}
         <div className="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#E2F1FF] via-[#EEF2FF] to-[#FCE7F3] p-8 py-16 text-center ring-1 ring-black/5 sm:px-12">
