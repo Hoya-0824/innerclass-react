@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { classNames, getHost, getApiBase } from "../utils";
 
 import NewsDetailModal from "../../../components/News/NewsDetailModal";
@@ -98,131 +98,33 @@ function formatKSTCompact(iso: string) {
   });
 }
 
-/** ===== Scroll Hint Hook (TS-safe) ===== */
-function useScrollHints<T extends HTMLElement>(
-  ref: React.RefObject<T | null>,
-  deps: unknown[]
-) {
-  const [hasOverflow, setHasOverflow] = useState(false);
-  const [canUp, setCanUp] = useState(false);
-  const [canDown, setCanDown] = useState(false);
+/** ===== Scroll Hint Hook (TS-safe) =====
+ *  현재 UI에서 힌트 렌더를 완전히 제거했지만,
+ *  나중에 다시 켤 가능성 대비해 hook은 남겨도 됩니다.
+ *  (단, 반환값을 실제로 쓰지 않으면 TS6133 발생 가능)
+ *
+ *  -> 따라서 이번 버전에서는 hook 자체도 제거합니다.
+ */
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const update = () => {
-      const ch = el.clientHeight;
-      const sh = el.scrollHeight;
-      const st = el.scrollTop;
-
-      const overflow = sh > ch + 1;
-      setHasOverflow(overflow);
-
-      if (!overflow) {
-        setCanUp(false);
-        setCanDown(false);
-        return;
-      }
-
-      setCanUp(st > 1);
-      setCanDown(st + ch < sh - 1);
-    };
-
-    update();
-
-    const onScroll = () => update();
-    el.addEventListener("scroll", onScroll, { passive: true });
-
-    const onResize = () => update();
-    window.addEventListener("resize", onResize, { passive: true });
-
-    return () => {
-      el.removeEventListener("scroll", onScroll as EventListener);
-      window.removeEventListener("resize", onResize as EventListener);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-
-  return { hasOverflow, canUp, canDown };
-}
-
-function ScrollHint({
-  show,
-  canUp,
-  canDown,
-  label,
-  position = "right",
-}: {
-  show: boolean;
-  canUp: boolean;
-  canDown: boolean;
-  label: string;
-  position?: "right" | "left";
-}) {
-  if (!show) return null;
-  const basePos = position === "left" ? "left-2 top-2" : "right-2 top-2";
-
-  const base = classNames(
-    "pointer-events-none absolute z-10 flex flex-col items-center",
-    basePos,
-    "rounded-full border border-white/60 bg-white/55 shadow-sm backdrop-blur",
-    "px-1 py-1",
-    "opacity-30"
-  );
-
-  const iconBase = "h-3 w-3";
-  const upCls = canUp ? "opacity-100" : "opacity-40";
-  const downCls = canDown ? "opacity-100" : "opacity-40";
-
-  return (
-    <div className={base} aria-hidden="true" title={label}>
-      <svg
-        viewBox="0 0 24 24"
-        className={classNames(iconBase, upCls)}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M6 14l6-6 6 6" />
-      </svg>
-      <svg
-        viewBox="0 0 24 24"
-        className={classNames(iconBase, downCls)}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M6 10l6 6 6-6" />
-      </svg>
-    </div>
-  );
-}
-
-/** ===== 엔드포인트 ===== */
+// ===== 엔드포인트 =====
 const THEME_LIST_ENDPOINT = "/news/themes/";
 const THEME_NEWS_ENDPOINT = "/news/by-theme/";
 
 function toModalNewsItem(n: ThemeNewsItem): ModalNewsItem {
-  // ✅ NewsDetailModal이 기대하는 필드명: imageUrl, originUrl, date, tags ...
   return {
     id: n.id,
     title: n.title,
     summary: n.summary,
     date: n.published_at
       ? (() => {
-        const d = new Date(n.published_at);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
-        return `${year}-${month}-${day} ${hours}:${minutes}`;
-      })()
+          const d = new Date(n.published_at);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const hours = String(d.getHours()).padStart(2, "0");
+          const minutes = String(d.getMinutes()).padStart(2, "0");
+          return `${year}-${month}-${day} ${hours}:${minutes}`;
+        })()
       : "날짜 미상",
     tags: (n.tags && n.tags.length ? n.tags : []).slice(0),
     imageUrl:
@@ -243,7 +145,7 @@ export function ThemeNewsSelection() {
   const [themeError, setThemeError] = useState<string | null>(null);
   const [newsError, setNewsError] = useState<string | null>(null);
 
-  // ✅ 모달 상태 추가
+  // ✅ 모달 상태
   const [selectedNews, setSelectedNews] = useState<ModalNewsItem | null>(null);
 
   /**
@@ -252,8 +154,7 @@ export function ThemeNewsSelection() {
   const VISIBLE_COUNT = 4;
   const THEME_CARD_H = 56; // h-14
   const GAP = 8; // space-y-2
-  const PANEL_H =
-    THEME_CARD_H * VISIBLE_COUNT + GAP * (VISIBLE_COUNT - 1); // 248
+  const PANEL_H = THEME_CARD_H * VISIBLE_COUNT + GAP * (VISIBLE_COUNT - 1); // 248
 
   /**
    * 폭 비율
@@ -273,10 +174,6 @@ export function ThemeNewsSelection() {
   // 스크롤 컨테이너 refs
   const themeScrollRef = useRef<HTMLDivElement | null>(null);
   const newsScrollRef = useRef<HTMLDivElement | null>(null);
-
-  // 힌트 상태
-  const themeHints = useScrollHints(themeScrollRef, [themes.length]);
-  const newsHints = useScrollHints(newsScrollRef, [news.length, selectedTheme]);
 
   // 테마 로드
   useEffect(() => {
@@ -368,14 +265,6 @@ export function ThemeNewsSelection() {
         {/* Left: Theme */}
         <div className={classNames("w-full", LEFT_W)}>
           <div className="relative rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-            {/* <ScrollHint
-              show={themeHints.hasOverflow}
-              canUp={themeHints.canUp}
-              canDown={themeHints.canDown}
-              label="테마 목록 스크롤 가능"
-              position="left"
-            /> */}
-
             <div className="sr-only" aria-live="polite">
               {loadingThemes ? "섹터 로딩 중" : "섹터 로딩 완료"}
             </div>
@@ -447,14 +336,6 @@ export function ThemeNewsSelection() {
         {/* Right: News */}
         <div className={classNames("w-full", RIGHT_W)}>
           <div className="relative rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-            {/* <ScrollHint
-              show={newsHints.hasOverflow}
-              canUp={newsHints.canUp}
-              canDown={newsHints.canDown}
-              label="테마별 뉴스 스크롤 가능"
-              position="right"
-            /> */}
-
             <div className="sr-only" aria-live="polite">
               {loadingNews
                 ? `뉴스 로딩 중: ${selectedTexts.ko}`
@@ -557,7 +438,10 @@ export function ThemeNewsSelection() {
 
       {/* ✅ News 페이지와 동일 UX: 상세 모달 */}
       {selectedNews && (
-        <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />
+        <NewsDetailModal
+          item={selectedNews}
+          onClose={() => setSelectedNews(null)}
+        />
       )}
     </section>
   );

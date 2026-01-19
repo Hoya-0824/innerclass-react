@@ -1,10 +1,8 @@
-// src/pages/News.tsx
 import { useEffect, useMemo, useState } from "react";
 import NewsFilterBar from "../components/News/NewsFilterBar";
 import NewsCard from "../components/News/NewsCard";
 import NewsDetailModal from "../components/News/NewsDetailModal";
-import TrendList from "../components/News/TrendList";
-import { TREND_DIVIDEND, TREND_VALUE, type NewsItem } from "../data/newsMockData";
+import type { NewsItem } from "../data/newsMockData";
 import api from "../lib/axios";
 import LoginGateOverlay from "../components/Auth/LoginGateOverlay";
 
@@ -53,6 +51,60 @@ const MOOD_UI: Record<
   },
 };
 
+// =========================================================
+// NEW: Step5 knowledge levels (title only usage near username)
+// =========================================================
+type KnowledgeLevel = 1 | 2 | 3 | 4 | 5;
+
+const LEVELS: Array<{
+  level: KnowledgeLevel;
+  title: string;
+  desc: string;
+  medal: string;
+}> = [
+  { level: 1, title: "입문자", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"', medal: "🥉" },
+  { level: 2, title: "초보자", desc: '"금리 인상으로 인해 시장 유동성이 줄어들고 있어요. 보수적인 접근이 필요합니다."', medal: "🥈" },
+  { level: 3, title: "중급자", desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다."', medal: "🥇" },
+  { level: 4, title: "숙련자", desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다."', medal: "💠" },
+  { level: 5, title: "전문가", desc: '"FOMC의 매파적 기조로 국채 금리가 급등하며 밸류에이션 부담이 가중되었습니다."', medal: "💎" },
+];
+
+function extractKnowledgeLevel(explain: any): KnowledgeLevel | null {
+  const raw =
+    explain?.profile?.knowledge_level ??
+    explain?.profile?.knowledgeLevel ??
+    explain?.knowledge_level ??
+    explain?.knowledgeLevel ??
+    explain?.level ??
+    null;
+
+  const n = Number(raw);
+  if (n === 1 || n === 2 || n === 3 || n === 4 || n === 5) return n as KnowledgeLevel;
+  return null;
+}
+
+function getLevelMeta(level: KnowledgeLevel | null) {
+  if (!level) return null;
+  return LEVELS.find((x) => x.level === level) ?? null;
+}
+
+function LevelBadge({
+  levelMeta,
+}: {
+  levelMeta: { level: KnowledgeLevel; title: string; desc: string; medal: string };
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-semibold bg-white text-gray-800 border-gray-200"
+      title={`${levelMeta.medal} Lv${levelMeta.level} ${levelMeta.title}`}
+    >
+      <span className="text-base leading-none">{levelMeta.medal}</span>
+      <span className="whitespace-nowrap">{levelMeta.title}</span>
+    </span>
+  );
+}
+// =========================================================
+
 function normalizeSectorLabel(s: string) {
   return (s || "")
     .trim()
@@ -64,12 +116,10 @@ function normalizeSectorLabel(s: string) {
 function toMoodFromText(raw: unknown): WeatherMood {
   const t = String(raw ?? "").toLowerCase();
 
-  // emoji / keywords
   if (t.includes("🌧") || t.includes("비") || t.includes("rain")) return "rainy";
   if (t.includes("☀") || t.includes("맑") || t.includes("sun")) return "sunny";
   if (t.includes("⛅") || t.includes("흐") || t.includes("cloud")) return "cloudy";
 
-  // fallback
   return "cloudy";
 }
 
@@ -87,8 +137,43 @@ function extractRiskProfile(explain: any): string | null {
   const s = String(v).trim();
   if (!s) return null;
 
-  // e.g. "B" or "B·중립형" or "B - 중립형"
   return s;
+}
+
+/**
+ * NEW: "보유 종목" 키워드 칩에서 투자성향(투자스타일) 문자열 제거
+ * - keywords 배열에 risk_profile 값(B 등)이나 "투자성향/투자스타일"이 섞여 내려오는 경우 UI 노출 방지
+ */
+function stripRiskProfileFromKeywords(
+  keywords: string[],
+  explain: BriefingExplain | null
+): string[] {
+  const rp = extractRiskProfile(explain as any);
+  if (!rp) return keywords;
+
+  const normalizedRp = String(rp).trim().replace(/^#/, "");
+  if (!normalizedRp) return keywords;
+
+  return (keywords || []).filter((k) => {
+    const kk = String(k ?? "").trim().replace(/^#/, "");
+    if (!kk) return false;
+
+    // 1) 완전 일치 (#B vs B 포함)
+    if (kk === normalizedRp) return false;
+
+    // 2) "투자성향 B", "투자스타일 B" 같이 문구가 섞인 케이스 제거
+    const lower = kk.toLowerCase();
+    const rpLower = normalizedRp.toLowerCase();
+
+    if (lower.includes("투자성향") || lower.includes("투자스타일") || lower.includes("risk")) {
+      return false;
+    }
+
+    // 3) "B형" / "B 스타일" 같은 변형도 방어적으로 제거
+    if (lower === `${rpLower}형` || lower === `${rpLower} 스타일`) return false;
+
+    return true;
+  });
 }
 
 function extractInterestSectors(explain: any): string[] {
@@ -114,7 +199,6 @@ function extractInterestSectors(explain: any): string[] {
     }
   }
 
-  // fallback: infer from keywords like "#배터리" "#IT/인터넷" "#바이오/건강"
   const kw = explain?.keywords ?? explain?.interest_keywords ?? explain?.interestKeywords;
   if (Array.isArray(kw) && kw.length) {
     const inferred = kw
@@ -130,10 +214,6 @@ function extractInterestSectors(explain: any): string[] {
 function buildSectorMoodMap(outlook: any): Record<string, WeatherMood> {
   const map: Record<string, WeatherMood> = {};
 
-  // Try a few plausible shapes:
-  // 1) outlook.sectors = [{ sector, mood/icon/emoji/condition }]
-  // 2) outlook.sector_moods = [...]
-  // 3) outlook.market?.sectors = [...]
   const arrays: any[] = [
     outlook?.sectors,
     outlook?.sector_moods,
@@ -169,11 +249,6 @@ function buildSectorMoodMap(outlook: any): Record<string, WeatherMood> {
   return map;
 }
 
-/**
- * 종합 날씨 계산 우선순위:
- * 1) outlook에 overall/summary/market_condition 같은 값이 있으면 그걸 파싱
- * 2) 관심 섹터 칩들의 mood 다수결(동률이면 cloudy)
- */
 function extractOverallMood(outlook: any, chipMoods: WeatherMood[]): WeatherMood {
   const raw =
     outlook?.overall_mood ??
@@ -187,7 +262,6 @@ function extractOverallMood(outlook: any, chipMoods: WeatherMood[]): WeatherMood
     null;
 
   const parsed = raw ? toMoodFromText(raw) : null;
-
   if (parsed) return parsed;
 
   if (!chipMoods.length) return "cloudy";
@@ -198,7 +272,6 @@ function extractOverallMood(outlook: any, chipMoods: WeatherMood[]): WeatherMood
   const max = Math.max(counts.sunny, counts.cloudy, counts.rainy);
   const winners = (Object.keys(counts) as WeatherMood[]).filter((k) => counts[k] === max);
 
-  // 동률은 기본 흐림
   return winners.length === 1 ? winners[0] : "cloudy";
 }
 
@@ -210,14 +283,13 @@ function _normalizeChipText(x: any): string {
 
 type TopKeywordsPayload =
   | {
-    top_keywords?: string[];
-    counts?: { keyword: string; count: number }[];
-  }
+      top_keywords?: string[];
+      counts?: { keyword: string; count: number }[];
+    }
   | null
   | undefined;
 
 function extractTopKeywords(topKeywords: TopKeywordsPayload): string[] {
-  // server: {"top_keywords": [...], "counts": [...], "source_articles_considered": N}
   const arr = (topKeywords as any)?.top_keywords;
   if (Array.isArray(arr) && arr.length) {
     return arr
@@ -226,7 +298,6 @@ function extractTopKeywords(topKeywords: TopKeywordsPayload): string[] {
       .slice(0, 5);
   }
 
-  // fallback: counts 기반
   const counts = (topKeywords as any)?.counts;
   if (Array.isArray(counts) && counts.length) {
     return counts
@@ -306,7 +377,6 @@ function SelectionSummary({
   const riskProfile = useMemo(() => extractRiskProfile(explain as any), [explain]);
   const sectorMoodMap = useMemo(() => buildSectorMoodMap(outlook as any), [outlook]);
 
-  // If mood not found for a sector, default to "cloudy"
   const chips = useMemo(
     () =>
       interestSectors.map((s) => ({
@@ -327,119 +397,133 @@ function SelectionSummary({
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
-      {/* Left Card - Criteria Summary */}
+      {/* Left */}
       <div className="flex-1 bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm relative overflow-hidden">
-        <img
-          src={jewel2}
-          alt=""
-          className="absolute -top-10 md:-top-15 -right-5 md:right-10 w-32 h-32 md:w-56 md:h-56 pointer-events-none z-40 opacity-80"
-        />
-        <img
-          src={jewel3}
-          alt=""
-          className="absolute top-20 -right-4 md:-right-1 w-16 h-16 md:w-28 md:h-28 pointer-events-none z-20 opacity-80"
-        />
-        <img
-          src={jewel1}
-          alt=""
-          className="absolute top-28 right-16 md:top-25 md:right-50 w-16 h-16 md:w-30 md:h-30 pointer-events-none z-30 opacity-90"
-        />
-
-        {/* Header */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2 mb-1">
-            {/* Sparkle Icon Badge */}
-            <span className="inline-flex items-center justify-center w-7 h-7 text-blue-500">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
-              </svg>
-            </span>
-            <h3 className="text-base font-bold text-gray-900">AI 선정 기준 요약</h3>
-          </div>
-          <p className="text-sm text-gray-500">유사도 추천(임베딩) + 보유종목 부스팅</p>
+        {/* ===== Decoration layer (behind) ===== */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <img
+            src={jewel2}
+            alt=""
+            className="absolute -top-10 md:-top-15 -right-5 md:right-10 w-32 h-32 md:w-56 md:h-56 opacity-25"
+          />
+          <img
+            src={jewel3}
+            alt=""
+            className="absolute top-20 -right-4 md:-right-1 w-16 h-16 md:w-28 md:h-28 opacity-20"
+          />
+          <img
+            src={jewel1}
+            alt=""
+            className="absolute top-28 right-16 md:top-25 md:right-50 w-16 h-16 md:w-30 md:h-30 opacity-22"
+          />
         </div>
 
-        {/* Inner Container RESTORED with Blue Border */}
-        <div className="border-3 border-blue-50 rounded-xl p-4 lg:p-7 bg-blue-50/30 relative z-10">
-          {/* Interest Sectors - Row 1 */}
-          <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3 mb-4">
-            <div className="flex items-center gap-2 min-w-fit">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
-                {/* Database Icon */}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        {/* ===== Content layer (front) ===== */}
+        <div className="relative z-10">
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="inline-flex items-center justify-center w-7 h-7 text-blue-500">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
                 </svg>
               </span>
-              <div className="text-sm font-semibold text-gray-800">유사도 추천 기준 관심사</div>
+              <h3 className="text-base font-bold text-gray-900">AI 선정 기준 요약</h3>
             </div>
-
-            <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
-              {chips.length > 0 ? (
-                chips.map((c) => <SectorChip key={c.label} label={c.label} mood={c.mood} />)
-              ) : (
-                <span className="text-sm text-gray-400">관심 섹터 정보가 없습니다.</span>
-              )}
-
-              {riskProfile ? <RiskChip text={riskProfile} /> : null}
-            </div>
+            <p className="text-sm text-gray-500">유사도 추천(임베딩) + 보유종목 부스팅</p>
           </div>
 
-          {/* Divider */}
-          <div className="border-b border-blue-200/50 my-4" />
+          <div className="border-3 border-blue-50 rounded-xl p-4 lg:p-7 bg-blue-50/30 relative">
+            <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3 mb-4">
+              <div className="flex items-center gap-2 min-w-fit">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                  </svg>
+                </span>
+                <div className="text-sm font-semibold text-gray-800">유사도 추천 기준 관심사</div>
+              </div>
 
-          {/* Top Keywords - Row 2 */}
-          <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3">
-            <div className="flex items-center gap-2 min-w-fit">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
-                {/* Sparkle Icon */}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" opacity="0" />
-                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a0.5 0.5 0 0 1 0-0.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a0.5 0.5 0 0 1 0.963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a0.5 0.5 0 0 1 0 0.962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a0.5 0.5 0 0 1-0.963 0z" />
-                </svg>
-              </span>
-              <div className="text-sm font-semibold text-gray-800">관련 키워드 TOP 5</div>
+              <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
+                {chips.length > 0 ? (
+                  chips.map((c) => <SectorChip key={c.label} label={c.label} mood={c.mood} />)
+                ) : (
+                  <span className="text-sm text-gray-400">관심 섹터 정보가 없습니다.</span>
+                )}
+
+                {riskProfile ? <RiskChip text={riskProfile} /> : null}
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
-              {top5.length > 0 ? (
-                top5.map((k) => <KeywordChip key={k} label={k} />)
-              ) : (
-                <span className="text-sm text-gray-400">키워드 정보가 없습니다.</span>
-              )}
+            <div className="border-b border-blue-200/50 my-4" />
+
+            <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3">
+              <div className="flex items-center gap-2 min-w-fit">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path
+                      d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"
+                      opacity="0"
+                    />
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a0.5 0.5 0 0 1 0-0.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a0.5 0 0 1 0.963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a0.5 0 0 1 0 0.962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a0.5 0 0 1-0.963 0z"
+                    />
+                  </svg>
+                </span>
+                <div className="text-sm font-semibold text-gray-800">관련 키워드 TOP 5</div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
+                {top5.length > 0 ? (
+                  top5.map((k) => <KeywordChip key={k} label={k} />)
+                ) : (
+                  <span className="text-sm text-gray-400">키워드 정보가 없습니다.</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Card - Comprehensive Score */}
+      {/* Right */}
       <div className="lg:w-64 bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm flex flex-col items-center justify-center">
         <div className="text-sm font-semibold text-gray-600 mb-4">종합점수</div>
 
-        {/* Large Weather Icon */}
         <div className="relative w-32 h-32 mb-4">
-          <img
-            src={weatherImage}
-            alt={ui.label}
-            className="w-full h-full object-contain"
-          />
+          <img src={weatherImage} alt={ui.label} className="w-full h-full object-contain" />
         </div>
 
-        {/* Mood Label */}
-        <div className={[
-          "px-4 py-2 rounded-full border text-sm font-bold",
-          ui.chipClass
-        ].join(" ")}>
+        <div className={["px-4 py-2 rounded-full border text-sm font-bold", ui.chipClass].join(" ")}>
           {ui.emoji} {ui.label}
         </div>
       </div>
     </div>
   );
 }
-
-
-
 
 const News = () => {
   const isLoggedIn = !!localStorage.getItem("access_token");
@@ -457,7 +541,6 @@ const News = () => {
   const [briefingExplain, setBriefingExplain] = useState<BriefingExplain | null>(null);
   const [briefingOutlook, setBriefingOutlook] = useState<Outlook | null>(null);
 
-  // ✅ server payload: top_keywords
   const [topKeywords, setTopKeywords] = useState<TopKeywordsPayload>(null);
 
   const [briefPage, setBriefPage] = useState(0);
@@ -467,7 +550,13 @@ const News = () => {
   const [kwLock, setKwLock] = useState(false);
 
   const username = localStorage.getItem("user_name");
-  const displayKeywords = keywords.slice(0, 3);
+  const displayKeywords = keywords.slice(0, 5);
+
+  // NEW: derive current level meta from briefingExplain
+  const levelMeta = useMemo(() => {
+    const lv = extractKnowledgeLevel(briefingExplain as any);
+    return getLevelMeta(lv);
+  }, [briefingExplain]);
 
   const getNewsData = async (keyword?: string, market: string = "all") => {
     const params = new URLSearchParams();
@@ -484,14 +573,14 @@ const News = () => {
       summary: item.summary,
       date: item.published_at
         ? (() => {
-          const d = new Date(item.published_at);
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, "0");
-          const dd = String(d.getDate()).padStart(2, "0");
-          const hh = String(d.getHours()).padStart(2, "0");
-          const mi = String(d.getMinutes()).padStart(2, "0");
-          return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
-        })()
+            const d = new Date(item.published_at);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            const hh = String(d.getHours()).padStart(2, "0");
+            const mi = String(d.getMinutes()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+          })()
         : "날짜 미상",
       tags: item.tags || [item.tag || "뉴스"],
       imageUrl:
@@ -509,7 +598,6 @@ const News = () => {
     return { news: sliced, keywords: response.data.keywords, explain, outlook, top_keywords };
   };
 
-  // ✅ Responsive Page Size
   const [pageSize, setPageSize] = useState(() => (window.innerWidth < 768 ? 3 : 6));
 
   useEffect(() => {
@@ -581,7 +669,12 @@ const News = () => {
         setBriefingOutlook(general.outlook || null);
         setTopKeywords(general.top_keywords || null);
 
-        const currentKeywords = general.keywords || [];
+        // NEW: strip risk profile (투자성향/투자스타일) from "보유 종목" keywords
+        const currentKeywordsRaw = general.keywords || [];
+        const currentKeywords = stripRiskProfileFromKeywords(
+          currentKeywordsRaw,
+          general.explain || null
+        );
         setKeywords(currentKeywords.length > 0 ? currentKeywords : []);
 
         let targetKw = selectedKeyword;
@@ -676,11 +769,14 @@ const News = () => {
       <div className="relative">
         <section className="mb-16">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              {username ? `${username}님을 위한 AI 브리핑` : "오늘의 AI 브리핑"}
-            </h2>
+            {/* Title + Level badge inline */}
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {username ? `${username}님을 위한 AI 브리핑` : "오늘의 AI 브리핑"}
+              </h2>
+              {levelMeta ? <LevelBadge levelMeta={levelMeta} /> : null}
+            </div>
 
-            {/* 선정 기준 요약 + 종합 날씨 + 관련 키워드 TOP5 */}
             <SelectionSummary
               explain={briefingExplain}
               outlook={briefingOutlook}
@@ -697,11 +793,7 @@ const News = () => {
 
                 {showBriefArrows && (
                   <>
-                    <CarouselArrowButton
-                      dir="left"
-                      disabled={briefPage <= 0 || briefLock}
-                      onClick={() => goBrief("left")}
-                    />
+                    <CarouselArrowButton dir="left" disabled={briefPage <= 0 || briefLock} onClick={() => goBrief("left")} />
                     <CarouselArrowButton
                       dir="right"
                       disabled={briefPage >= briefTotalPages - 1 || briefLock}
@@ -721,16 +813,17 @@ const News = () => {
         <section className="mb-16">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">내 키워드 뉴스</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">보유 종목 뉴스</h2>
               <div className="flex flex-wrap gap-2">
                 {displayKeywords.map((keyword, idx) => (
                   <span
                     key={idx}
                     onClick={() => handleKeywordClick(keyword)}
-                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${selectedKeyword === keyword
-                      ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
-                      : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
-                      }`}
+                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${
+                      selectedKeyword === keyword
+                        ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
+                        : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
+                    }`}
                   >
                     {keyword}
                   </span>
@@ -748,16 +841,8 @@ const News = () => {
 
                 {showKwArrows && (
                   <>
-                    <CarouselArrowButton
-                      dir="left"
-                      disabled={kwPage <= 0 || kwLock}
-                      onClick={() => goKw("left")}
-                    />
-                    <CarouselArrowButton
-                      dir="right"
-                      disabled={kwPage >= kwTotalPages - 1 || kwLock}
-                      onClick={() => goKw("right")}
-                    />
+                    <CarouselArrowButton dir="left" disabled={kwPage <= 0 || kwLock} onClick={() => goKw("left")} />
+                    <CarouselArrowButton dir="right" disabled={kwPage >= kwTotalPages - 1 || kwLock} onClick={() => goKw("right")} />
                   </>
                 )}
               </div>
@@ -769,31 +854,6 @@ const News = () => {
 
         {!isLoggedIn && <LoginGateOverlay />}
       </div>
-
-      {/* <section className="mb-16">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 inline-block mr-3">오늘의 트렌드 뉴스</h2>
-          <p className="inline-block text-gray-500 text-sm mt-1">지금 시장에 영향을 준 뉴스만 골랐어요</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="text-2xl p-2 bg-yellow-50 rounded-lg">💰</span>
-              <h3 className="text-lg font-bold text-gray-900">꾸준한 배당을 주는 주식</h3>
-            </div>
-            <TrendList items={TREND_DIVIDEND} />
-          </div>
-
-          <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-2 mb-6">
-              <span className="text-2xl p-2 bg-blue-50 rounded-lg">📉</span>
-              <h3 className="text-lg font-bold text-gray-900">아직 저렴한 가치주</h3>
-            </div>
-            <TrendList items={TREND_VALUE} />
-          </div>
-        </div>
-      </section> */}
 
       {selectedNews && <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />}
     </div>

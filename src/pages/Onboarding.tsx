@@ -114,14 +114,26 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
   const [highlight, setHighlight] = useState<number>(-1);
   const [loading, setLoading] = useState(false);
 
+  // ✅ 등록 시 ticker(심볼) 제거: "삼성전자 (005930)" -> "삼성전자"
+  const normalizeRegisterName = (text: string) => {
+    const t = (text ?? "").trim();
+    if (!t) return "";
+    // 끝에 붙은 "(...)" 패턴 제거
+    return t.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  };
+
   const addStock = (value?: string) => {
-    const v = (value ?? portfolioInput).trim();
-    if (!v) return;
+    const raw = (value ?? portfolioInput).trim();
+    if (!raw) return;
+
+    const nameOnly = normalizeRegisterName(raw);
+    if (!nameOnly) return;
 
     const cur = Array.isArray(userData.portfolio) ? userData.portfolio : [];
-    if (!cur.includes(v)) {
-      updateData("portfolio", [...cur, v]);
+    if (!cur.includes(nameOnly)) {
+      updateData("portfolio", [...cur, nameOnly]);
     }
+
     setPortfolioInput("");
     setSuggestions([]);
     setOpen(false);
@@ -136,12 +148,10 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     );
   };
 
-  const inferMarketParam = (): "KOSPI" | "NASDAQ" | "ALL" => {
-    const assets = Array.isArray(userData.assetType) ? userData.assetType : [];
-    if (assets.includes("미국주식") && !assets.includes("국내주식")) return "NASDAQ";
-    if (assets.includes("국내주식") && !assets.includes("미국주식")) return "KOSPI";
-    return "ALL";
-  };
+  // ✅ Step1 자산 선택과 무관하게 항상 전시장 자동완성
+  //    - 서버가 market 파라미터 없이 ALL로 처리한다면 market 생략 가능
+  //    - 지금은 명시적으로 market=ALL을 보냄 (KOSPI/KOSDAQ/NASDAQ 전부 포함 의도)
+  const marketParam = "ALL" as const;
 
   // 검색 API 호출 (debounce)
   useEffect(() => {
@@ -158,7 +168,7 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
       try {
         setLoading(true);
         const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/markets/symbols/suggest/`, {
-          params: { q, limit: 10, market: inferMarketParam() },
+          params: { q, limit: 10, market: marketParam },
         });
 
         if (canceled) return;
@@ -181,7 +191,7 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
       window.clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [portfolioInput, userData.assetType]);
+  }, [portfolioInput]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if ((e.nativeEvent as any).isComposing) return;
@@ -212,16 +222,20 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     }
 
     if (e.key === "Enter") {
+      // ✅ 자동완성 선택 중이면 "name"만 등록 (ticker 제거)
       if (open && highlight >= 0 && highlight < suggestions.length) {
         const item = suggestions[highlight];
-        addStock(`${item.name} (${item.symbol})`);
+        addStock(item.name);
       } else {
+        // ✅ 사용자가 티커로 입력했을 때도 등록 값에서 "(...)" 제거만 적용
+        // (예: "Apple (AAPL)" 입력했으면 "Apple"로 저장)
         addStock();
       }
     }
   };
 
-  const onPick = (item: SuggestItem) => addStock(`${item.name} (${item.symbol})`);
+  // ✅ 클릭 선택도 "name"만 등록
+  const onPick = (item: SuggestItem) => addStock(item.name);
 
   const portfolio = Array.isArray(userData.portfolio) ? userData.portfolio : [];
 
@@ -271,7 +285,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                       } hover:bg-indigo-50`}
                   >
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 truncate text-sm sm:text-base">{it.name}</div>
+
+                      {/* ✅ 리스트에서는 티커를 보여주되, 등록은 name만 */}
+                      <div className="font-semibold text-gray-900 truncate">{it.name}</div>
                       <div className="text-xs text-gray-500">
                         {it.symbol}
                         {it.market ? ` • ${it.market}` : ""}
@@ -347,7 +363,7 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
 
 const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
   const levels = [
-    { level: 1, title: "주린이", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"', medal: "🥉" },
+    { level: 1, title: "입문자", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"', medal: "🥉" },
     { level: 2, title: "초보자", desc: '"금리 인상으로 인해 시장 유동성이 줄어들고 있어요. 보수적인 접근이 필요합니다."', medal: "🥈" },
     { level: 3, title: "중급자", desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다."', medal: "🥇" },
     { level: 4, title: "숙련자", desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다."', medal: "💠" },
