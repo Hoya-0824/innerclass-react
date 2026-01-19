@@ -17,7 +17,7 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
   const options = ["국내주식", "미국주식", "가상화폐", "ETF/원자재"];
 
   const toggleAsset = (asset: string) => {
-    const current = userData.assetType;
+    const current = Array.isArray(userData.assetType) ? userData.assetType : [];
     if (current.includes(asset)) {
       updateData(
         "assetType",
@@ -34,10 +34,11 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
         <button
           key={opt}
           onClick={() => toggleAsset(opt)}
-          className={`p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-lg font-medium ${userData.assetType.includes(opt)
-            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
-            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
-            }`}
+          className={`p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-lg font-medium ${
+            (userData.assetType ?? []).includes(opt)
+              ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
+              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
+          }`}
         >
           {opt}
         </button>
@@ -47,37 +48,50 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
 };
 
 const Step2Sector = ({ userData, updateData }: StepProps) => {
-  const options = ["반도체", "2차전지", "AI", "바이오", "자동차", "인터넷/플랫폼", "금융", "에너지"];
+  const options = ["반도체/AI", "배터리", "IT/인터넷", "바이오/건강", "자동차", "친환경/석유에너지", "금융/지주"];
+
+  const current = Array.isArray(userData.sectors) ? userData.sectors : [];
+  const selectedCount = current.length;
+
   const toggleSector = (sector: string) => {
-    const current = userData.sectors;
-    if (current.includes(sector)) {
+    const now = Array.isArray(userData.sectors) ? userData.sectors : [];
+    if (now.includes(sector)) {
       updateData(
         "sectors",
-        current.filter((s) => s !== sector)
+        now.filter((s) => s !== sector)
       );
-    } else {
-      if (current.length < 3) {
-        updateData("sectors", [...current, sector]);
-      }
+      return;
     }
+    if (now.length >= 3) return; // ✅ 최대 3개 제한
+    updateData("sectors", [...now, sector]);
   };
 
   return (
     <div>
-      <p className="mb-4 text-sm text-gray-500">최대 3개까지 선택 가능합니다.</p>
+      <p className="mb-4 text-sm text-gray-500">
+        최대 3개까지 선택 가능합니다. <span className="text-gray-400">({selectedCount}/3)</span>
+      </p>
       <div className="flex flex-wrap gap-3">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            onClick={() => toggleSector(opt)}
-            className={`px-4 py-2 rounded-full border cursor-pointer transition-all duration-200 ${userData.sectors.includes(opt)
-              ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
-              : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400"
-              }`}
-          >
-            {opt}
-          </button>
-        ))}
+        {options.map((opt) => {
+          const selected = current.includes(opt);
+          const disabled = !selected && selectedCount >= 3; // ✅ 3개 찼으면 비선택 항목 비활성
+          return (
+            <button
+              key={opt}
+              onClick={() => toggleSector(opt)}
+              disabled={disabled}
+              className={[
+                "px-4 py-2 rounded-full border transition-all duration-200",
+                selected
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400",
+                disabled ? "opacity-40 cursor-not-allowed hover:border-gray-300" : "cursor-pointer",
+              ].join(" ")}
+            >
+              {opt}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -104,8 +118,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     const v = (value ?? portfolioInput).trim();
     if (!v) return;
 
-    if (!userData.portfolio.includes(v)) {
-      updateData("portfolio", [...userData.portfolio, v]);
+    const cur = Array.isArray(userData.portfolio) ? userData.portfolio : [];
+    if (!cur.includes(v)) {
+      updateData("portfolio", [...cur, v]);
     }
     setPortfolioInput("");
     setSuggestions([]);
@@ -114,16 +129,15 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
   };
 
   const removeStock = (stock: string) => {
+    const cur = Array.isArray(userData.portfolio) ? userData.portfolio : [];
     updateData(
       "portfolio",
-      userData.portfolio.filter((s) => s !== stock)
+      cur.filter((s) => s !== stock)
     );
   };
 
   const inferMarketParam = (): "KOSPI" | "NASDAQ" | "ALL" => {
-    // DailyRankingSnapshot 기반 suggest는 market 파라미터가 KOSPI/KOSDAQ/NASDAQ/ALL 이므로
-    // 온보딩 자산 타입 기준으로 대략 좁혀줌
-    const assets = userData.assetType;
+    const assets = Array.isArray(userData.assetType) ? userData.assetType : [];
     if (assets.includes("미국주식") && !assets.includes("국내주식")) return "NASDAQ";
     if (assets.includes("국내주식") && !assets.includes("미국주식")) return "KOSPI";
     return "ALL";
@@ -143,16 +157,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     const t = window.setTimeout(async () => {
       try {
         setLoading(true);
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/markets/symbols/suggest/`,
-          {
-            params: {
-              q,
-              limit: 10,
-              market: inferMarketParam(),
-            },
-          }
-        );
+        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/markets/symbols/suggest/`, {
+          params: { q, limit: 10, market: inferMarketParam() },
+        });
 
         if (canceled) return;
         const results: SuggestItem[] = res.data?.results ?? [];
@@ -177,7 +184,6 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
   }, [portfolioInput, userData.assetType]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevent IME composition duplication
     if ((e.nativeEvent as any).isComposing) return;
 
     if (e.key === "ArrowDown") {
@@ -215,9 +221,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     }
   };
 
-  const onPick = (item: SuggestItem) => {
-    addStock(`${item.name} (${item.symbol})`);
-  };
+  const onPick = (item: SuggestItem) => addStock(`${item.name} (${item.symbol})`);
+
+  const portfolio = Array.isArray(userData.portfolio) ? userData.portfolio : [];
 
   return (
     <div className="space-y-6">
@@ -234,7 +240,6 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
               if (suggestions.length > 0) setOpen(true);
             }}
             onBlur={() => {
-              // 클릭 선택을 위해 blur를 약간 지연
               window.setTimeout(() => setOpen(false), 120);
             }}
           />
@@ -260,10 +265,11 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                   <li
                     key={`${it.symbol}-${idx}`}
                     onMouseEnter={() => setHighlight(idx)}
-                    onMouseDown={(e) => e.preventDefault()} // blur 방지
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onPick(it)}
-                    className={`px-4 py-3 cursor-pointer flex items-center justify-between ${active ? "bg-indigo-50" : "bg-white"
-                      } hover:bg-indigo-50`}
+                    className={`px-4 py-3 cursor-pointer flex items-center justify-between ${
+                      active ? "bg-indigo-50" : "bg-white"
+                    } hover:bg-indigo-50`}
                   >
                     <div className="min-w-0">
                       <div className="font-semibold text-gray-900 truncate">{it.name}</div>
@@ -276,19 +282,17 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                   </li>
                 );
               })}
-              {suggestions.length === 0 && (
-                <li className="px-4 py-3 text-sm text-gray-500">검색 결과가 없습니다.</li>
-              )}
+              {suggestions.length === 0 && <li className="px-4 py-3 text-sm text-gray-500">검색 결과가 없습니다.</li>}
             </ul>
           </div>
         )}
       </div>
 
-      {userData.portfolio.length > 0 && (
+      {portfolio.length > 0 && (
         <div className="bg-gray-50 rounded-xl p-4 min-h-[100px]">
           <h4 className="text-sm font-semibold text-gray-500 mb-3">등록된 종목</h4>
           <div className="flex flex-wrap gap-2">
-            {userData.portfolio.map((stock) => (
+            {portfolio.map((stock) => (
               <span
                 key={stock}
                 className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-800"
@@ -319,21 +323,19 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
         <div
           key={p.id}
           onClick={() => updateData("riskProfile", p.id)}
-          className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${userData.riskProfile === p.id
-            ? "border-indigo-600 bg-indigo-50 shadow-md"
-            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-            }`}
+          className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
+            userData.riskProfile === p.id ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+          }`}
         >
           <div>
-            <h4 className={`text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>
-              {p.title}
-            </h4>
+            <h4 className={`text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>{p.title}</h4>
             <p className="text-gray-600 mt-1">{p.desc}</p>
             <p className="text-xs text-gray-400 mt-1">{p.sub}</p>
           </div>
           <div
-            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
-              }`}
+            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+              userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
+            }`}
           >
             {userData.riskProfile === p.id && <div className="w-3 h-3 bg-indigo-600 rounded-full" />}
           </div>
@@ -347,21 +349,9 @@ const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
   const levels = [
     { level: 1, title: "주린이", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"' },
     { level: 2, title: "초보자", desc: '"금리 인상으로 인해 시장 유동성이 줄어들고 있어요. 보수적인 접근이 필요합니다."' },
-    {
-      level: 3,
-      title: "중급자",
-      desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다. 포트폴리오 재구성이 필요해 보여요."',
-    },
-    {
-      level: 4,
-      title: "숙련자",
-      desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다. 현금 비중을 확대하고 방어주 위주의 전략을 추천합니다."',
-    },
-    {
-      level: 5,
-      title: "전문가",
-      desc: '"FOMC의 매파적 기조로 국채 금리가 급등하며 밸류에이션 부담이 가중되었습니다. 리스크 오프 전략이 유효합니다."',
-    },
+    { level: 3, title: "중급자", desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다. 포트폴리오 재구성이 필요해 보여요."' },
+    { level: 4, title: "숙련자", desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다. 현금 비중을 확대하고 방어주 위주의 전략을 추천합니다."' },
+    { level: 5, title: "전문가", desc: '"FOMC의 매파적 기조로 국채 금리가 급등하며 밸류에이션 부담이 가중되었습니다. 리스크 오프 전략이 유효합니다."' },
   ];
 
   return (
@@ -370,15 +360,15 @@ const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
         <div
           key={l.level}
           onClick={() => updateData("knowledgeLevel", l.level)}
-          className={`cursor-pointer p-4 rounded-xl border transition-all duration-200 ${userData.knowledgeLevel === l.level
-            ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600"
-            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-            }`}
+          className={`cursor-pointer p-4 rounded-xl border transition-all duration-200 ${
+            userData.knowledgeLevel === l.level ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+          }`}
         >
           <div className="flex items-center gap-3 mb-2">
             <span
-              className={`px-2 py-1 rounded-md text-xs font-bold ${userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
-                }`}
+              className={`px-2 py-1 rounded-md text-xs font-bold ${
+                userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
+              }`}
             >
               Lv.{l.level}
             </span>
@@ -407,39 +397,71 @@ const Onboarding = () => {
 
   const [portfolioInput, setPortfolioInput] = useState("");
 
+  // ✅ 서버 응답 정규화(배열 보장)
+  const normalizeUserData = (raw: any): UserData => {
+    const toArray = (v: any): string[] => {
+      if (Array.isArray(v)) return v.filter(Boolean).map(String);
+      if (typeof v === "string") {
+        const s = v.trim();
+        if (!s) return [];
+        if (s.includes(",")) return s.split(",").map((x) => x.trim()).filter(Boolean);
+        return [s];
+      }
+      return [];
+    };
+
+    return {
+      assetType: toArray(raw?.assetType),
+      sectors: toArray(raw?.sectors),
+      portfolio: toArray(raw?.portfolio),
+      riskProfile: String(raw?.riskProfile ?? ""),
+      knowledgeLevel: Number(raw?.knowledgeLevel ?? 0),
+    };
+  };
+
   useEffect(() => {
     const checkProfile = async () => {
       try {
         const accessToken = localStorage.getItem("access_token");
-        if (accessToken) {
-          const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
+        if (!accessToken) return;
 
-          if (isEditing) {
-            if (response.data) {
-              setUserData(response.data);
-            }
-          } else {
-            if (response.data && response.data.assetType && response.data.assetType.length > 0) {
-              navigate("/");
-            }
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const normalized = normalizeUserData(response.data);
+
+        if (isEditing) {
+          setUserData(normalized);
+        } else {
+          if (normalized.assetType.length > 0) {
+            navigate("/");
           }
         }
-      } catch (error) {
+      } catch {
         // ignore
       }
     };
+
     checkProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, isEditing]);
 
   const submitData = async () => {
     try {
       const accessToken = localStorage.getItem("access_token");
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, userData, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+
+      const payload: UserData = {
+        ...userData,
+        assetType: Array.isArray(userData.assetType) ? userData.assetType : [],
+        sectors: Array.isArray(userData.sectors) ? userData.sectors : [],
+        portfolio: Array.isArray(userData.portfolio) ? userData.portfolio : [],
+        riskProfile: userData.riskProfile ?? "",
+        knowledgeLevel: Number(userData.knowledgeLevel ?? 0),
+      };
+
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, payload, {
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
     } catch (error) {
       console.error("온보딩 데이터 전송 실패: ", error);
@@ -466,11 +488,13 @@ const Onboarding = () => {
   };
 
   const isStepValid = () => {
+    const a = Array.isArray(userData.assetType) ? userData.assetType : [];
+    const s = Array.isArray(userData.sectors) ? userData.sectors : [];
     switch (currentStep) {
       case 1:
-        return userData.assetType.length > 0;
+        return a.length > 0;
       case 2:
-        return userData.sectors.length > 0;
+        return s.length > 0;
       case 3:
         return true;
       case 4:
@@ -486,17 +510,12 @@ const Onboarding = () => {
     <div className="min-h-screen flex items-start justify-center p-4 pt-20">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="bg-gray-100 h-2 w-full">
-          <div
-            className="h-full bg-indigo-600 transition-all duration-500 ease-out"
-            style={{ width: `${(currentStep / 5) * 100}%` }}
-          />
+          <div className="h-full bg-indigo-600 transition-all duration-500 ease-out" style={{ width: `${(currentStep / 5) * 100}%` }} />
         </div>
 
         <div className="p-8">
           <div className="mb-8">
-            <span className="text-indigo-600 font-bold tracking-wider text-xs uppercase mb-2 block">
-              Step {currentStep} of 5
-            </span>
+            <span className="text-indigo-600 font-bold tracking-wider text-xs uppercase mb-2 block">Step {currentStep} of 5</span>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {currentStep === 1 && "주로 투자하시는 자산은 무엇인가요?"}
               {currentStep === 2 && "관심 있는 산업 분야를 골라주세요."}
@@ -514,12 +533,7 @@ const Onboarding = () => {
             {currentStep === 1 && <Step1AssetType userData={userData} updateData={updateData} />}
             {currentStep === 2 && <Step2Sector userData={userData} updateData={updateData} />}
             {currentStep === 3 && (
-              <Step3Portfolio
-                userData={userData}
-                updateData={updateData}
-                portfolioInput={portfolioInput}
-                setPortfolioInput={setPortfolioInput}
-              />
+              <Step3Portfolio userData={userData} updateData={updateData} portfolioInput={portfolioInput} setPortfolioInput={setPortfolioInput} />
             )}
             {currentStep === 4 && <Step4RiskProfile userData={userData} updateData={updateData} />}
             {currentStep === 5 && <Step5KnowledgeLevel userData={userData} updateData={updateData} />}
@@ -529,19 +543,18 @@ const Onboarding = () => {
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className={`px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-colors ${currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-colors ${
+                currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               이전
             </button>
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`px-8 py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 ${!isStepValid()
-                ? "bg-gray-300 cursor-not-allowed shadow-none"
-                : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
-                }`}
-              data-gtm-step={currentStep}
+              className={`px-8 py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 ${
+                !isStepValid() ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
+              }`}
             >
               {currentStep === 5 ? (isEditing ? "수정 완료" : "완료") : "다음"}
             </button>
