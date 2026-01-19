@@ -34,6 +34,7 @@ const GoogleCallback = () => {
             localStorage.setItem('access_token', access);
             localStorage.setItem('refresh_token', refresh);
             localStorage.setItem('user_name', user.name);
+            localStorage.setItem('user_email', user.email);
 
             if (user.has_profile) {
                 navigate('/')

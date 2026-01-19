@@ -408,10 +408,10 @@ const Chatbot = () => {
     {
       icon: (
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center"
           style={{ background: "linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%)" }}
         >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -424,14 +424,15 @@ const Chatbot = () => {
       title: "오늘의 뉴스 해석",
       description: "금리·환율·증시 뉴스를\n초보자 눈높이로 정리",
       bgColor: "bg-blue-50/70",
+      prompt: "오늘 주요 경제 뉴스를 초보자도 이해하기 쉽게 요약해 주세요. 금리, 환율, 증시 관련 뉴스가 있다면 어떤 의미인지 설명해 주세요.",
     },
     {
       icon: (
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center"
           style={{ background: "linear-gradient(135deg, #a78bfa 0%, #f472b6 100%)" }}
         >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -444,45 +445,113 @@ const Chatbot = () => {
       title: "투자 판단 도움",
       description: "지금 상황에서\n리스크와 포인트 요약",
       bgColor: "bg-purple-50/70",
+      prompt: "현재 시장 상황에서 초보 투자자가 주의해야 할 리스크와 투자 포인트를 알려주세요. 어떤 점을 고려해야 할까요?",
     },
     {
       icon: (
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center"
           style={{ background: "linear-gradient(135deg, #fbbf24 0%, #f97316 100%)" }}
         >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
             />
           </svg>
         </div>
       ),
       title: "용어 & 맥락 설명",
-      description: "경제 용어, 배경,\n왜 이런 반응이 나오는지",
+      description: "경제 용어, 배경\n 상황에 맞는 맥락 설명",
       bgColor: "bg-amber-50/70",
+      prompt: "경제 뉴스에서 자주 나오는 기본 용어들을 설명해 주세요. 예를 들어 금리, PER, 시가총액, 공매도 같은 용어의 의미와 맥락을 알려주세요.",
+    },
+    {
+      icon: (
+        <div
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)" }}
+        >
+          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </div>
+      ),
+      title: "관심 뉴스 추천",
+      description: "내 관심사에 맞는\n맞춤형 뉴스 추천",
+      bgColor: "bg-pink-50/70",
+      prompt: "초보 투자자에게 추천할 만한 오늘의 관심 뉴스가 있을까요? 주식, 부동산, 암호화폐 중 어떤 분야의 뉴스가 주목할 만한지 알려주세요.",
     },
   ];
+
+  const handleFeatureCardClick = async (prompt: string) => {
+    if (loading || !prompt.trim()) return;
+
+    if (!getAccessToken()) {
+      setError("로그인이 필요합니다. 다시 로그인 후 이용해 주세요.");
+      return;
+    }
+
+    setError(null);
+    setLoading(true);
+    setShowChatView(true);
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+
+    try {
+      const { answer, session_id } = await sendChat(
+        {
+          message: prompt,
+          ...(sessionId ? { session_id: sessionId } : {}),
+          ...(templateId ? { template_id: templateId } : {}),
+        },
+        controller.signal
+      );
+
+      if (!sessionId) {
+        setSessionId(session_id);
+        await refreshSessions(false);
+      } else {
+        await refreshSessions(false);
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+      inputRef.current?.focus();
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
+      setError(e?.message ?? "Chat failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8 pb-8 relative min-h-[calc(100vh-120px)]">
         <div className="flex gap-6 relative">
-          {/* Mobile Menu Backdrop */}
+          {/* Mobile Menu Backdrop - z-[60] to be above navbar (z-50) */}
           {mobileMenuOpen && (
             <div
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              className="fixed inset-0 bg-black/50 z-[60] md:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
           )}
 
-          {/* Sidebar */}
+          {/* Sidebar - z-[60] on mobile to be above navbar (z-50), z-30 on desktop */}
           <aside
             className={`
-            fixed md:relative inset-y-0 left-0 z-50 mt-6 w-[280px] md:w-[260px] bg-gray-50 md:bg-transparent transform transition-transform duration-300 ease-in-out md:translate-x-0 md:transform-none shrink-0
+            fixed md:relative inset-y-0 left-0 z-[60] md:z-30 mt-0 md:mt-6 w-[280px] md:w-[260px] bg-gray-50 md:bg-transparent transform transition-transform duration-300 ease-in-out md:translate-x-0 md:transform-none shrink-0
             ${mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}
           `}
           >
@@ -581,13 +650,13 @@ const Chatbot = () => {
           <main className="flex-1 flex flex-col min-w-0 pt-6">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 overflow-hidden flex-1 flex flex-col min-h-[600px] relative">
 
-              {/* Mobile Menu Button - Increased top spacing to avoid Navbar overlap */}
-              <div className="md:hidden absolute top-4 left-4 z-10">
+              {/* Mobile Menu Button - z-20 to stay below sidebar */}
+              <div className="md:hidden absolute top-4 left-4 z-20">
                 <button
                   onClick={() => setMobileMenuOpen(true)}
                   className="p-2 bg-white rounded-full shadow-sm border border-gray-200 text-gray-600 hover:bg-gray-50"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
@@ -595,40 +664,49 @@ const Chatbot = () => {
 
               {!showChatView && messages.length === 0 ? (
                 /* Welcome View */
-                <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 py-12 pt-20 md:pt-12">
+                <div className="flex-1 flex flex-col items-center justify-center px-4 md:px-8 py-8 sm:py-12 pt-16 sm:pt-20 md:pt-12">
                   {/* Logo */}
-                  <div className="flex justify-center items-center gap-3 mb-4">
-                    <img src={ChatbotLogo} alt="DecodeX Logo" width={48} height={48} className="object-contain" />
-                    <span className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">DecodeX</span>
+                  <div className="flex justify-center items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <img src={ChatbotLogo} alt="DecodeX Logo" className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain" />
+                    <span className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">DecodeX</span>
                   </div>
 
                   {/* Subtitle */}
-                  <div className="text-center mb-8 md:mb-12">
-                    <p className="text-lg font-semibold text-gray-900">초보 투자자를 위한 뉴스 해석 AI</p>
-                    <p className="text-gray-600">복잡한 경제 뉴스를 한눈에 이해하세요</p>
+                  <div className="text-center mb-6 sm:mb-8 md:mb-12">
+                    <p className="text-sm sm:text-base md:text-lg font-semibold text-gray-900">초보 투자자를 위한 뉴스 해석 AI</p>
+                    <p className="text-xs sm:text-sm md:text-base text-gray-600">복잡한 경제 뉴스를 한눈에 이해하세요</p>
                   </div>
 
-                  {/* Feature Cards */}
-                  <div className="grid grid-cols-2 md:flex gap-3 md:gap-4 mb-10 md:mb-16 w-full md:w-auto justify-center">
+                  {/* Feature Cards - 2x2 grid on mobile */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mb-8 sm:mb-10 md:mb-16 w-full max-w-[500px] md:max-w-none md:w-auto justify-center">
                     {featureCards.map((card, idx) => (
                       <div
                         key={idx}
-                        className={`${card.bgColor} rounded-2xl p-4 md:p-5 w-full md:w-[180px] transition-transform hover:scale-105 cursor-pointer border border-white/50 flex flex-col items-center text-center`}
+                        className={`${card.bgColor} rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 w-full md:w-[160px] transition-transform hover:scale-105 cursor-pointer border border-white/50 flex flex-col items-center text-center`}
+                        onClick={() => void handleFeatureCardClick(card.prompt)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            void handleFeatureCardClick(card.prompt);
+                          }
+                        }}
                       >
-                        <div className="mb-2 md:mb-3">{card.icon}</div>
-                        <div className="text-sm font-semibold text-gray-900 mb-1">{card.title}</div>
-                        <div className="text-xs text-gray-600 whitespace-pre-line leading-tight">{card.description}</div>
+                        <div className="mb-1.5 sm:mb-2 md:mb-3">{card.icon}</div>
+                        <div className="text-xs sm:text-sm font-semibold text-gray-900 mb-0.5 sm:mb-1">{card.title}</div>
+                        <div className="text-[10px] sm:text-xs text-gray-600 whitespace-pre-line leading-tight">{card.description}</div>
                       </div>
                     ))}
                   </div>
 
                   {/* Search Input */}
-                  <div className="w-full max-w-2xl">
-                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-5 py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
+                  <div className="w-full max-w-2xl px-2 sm:px-0">
+                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-3 sm:px-5 py-2.5 sm:py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
                       <input
                         ref={inputRef}
                         type="text"
-                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm bg-transparent"
+                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-xs sm:text-sm bg-transparent"
                         placeholder='"금리 인하 뉴스, 주식엔 어떤 영향이야?"'
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -638,10 +716,10 @@ const Chatbot = () => {
                       <button
                         onClick={() => void onSend()}
                         disabled={loading || input.trim().length === 0}
-                        className="ml-3 p-2 rounded-full hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                        className="ml-2 sm:ml-3 p-1.5 sm:p-2 rounded-full hover:bg-gray-100 disabled:opacity-40 transition-colors"
                         type="button"
                       >
-                        <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -653,7 +731,7 @@ const Chatbot = () => {
                     </div>
 
                     {error && (
-                      <div className="mt-3 text-center text-sm text-red-600 bg-red-50 py-2 px-4 rounded-lg">{error}</div>
+                      <div className="mt-3 text-center text-xs sm:text-sm text-red-600 bg-red-50 py-2 px-4 rounded-lg">{error}</div>
                     )}
                   </div>
                 </div>
@@ -661,7 +739,7 @@ const Chatbot = () => {
                 /* Chat View */
                 <>
                   {/* Chat Messages */}
-                  <div className="flex-1 overflow-auto px-4 md:px-6 py-5 space-y-4 pt-20 md:pt-5">
+                  <div className="flex-1 overflow-auto px-4 md:px-6 py-5 space-y-4 pt-16 sm:pt-20 md:pt-5">
                     {hasMore && (
                       <div className="flex justify-center">
                         <button
@@ -681,7 +759,7 @@ const Chatbot = () => {
                         <div key={idx} className={isUser ? "flex justify-end" : "flex justify-start"}>
                           <div
                             className={[
-                              "max-w-[75%] px-4 py-3 text-sm whitespace-pre-wrap",
+                              "max-w-[85%] sm:max-w-[75%] px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm whitespace-pre-wrap",
                               isUser
                                 ? "rounded-2xl rounded-tr-md bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
                                 : "rounded-2xl rounded-tl-md bg-gray-100 text-gray-900",
@@ -726,12 +804,12 @@ const Chatbot = () => {
                   </div>
 
                   {/* Chat Input Bar */}
-                  <div className="border-t border-gray-100 bg-white/50 px-6 py-4">
-                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-5 py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300">
+                  <div className="border-t border-gray-100 bg-white/50 px-4 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-center bg-white rounded-full border border-gray-200 shadow-sm px-3 sm:px-5 py-2.5 sm:py-3 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300">
                       <input
                         ref={inputRef}
                         type="text"
-                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-sm bg-transparent"
+                        className="flex-1 outline-none text-gray-700 placeholder-gray-400 text-xs sm:text-sm bg-transparent"
                         placeholder="메시지를 입력하세요..."
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -741,11 +819,11 @@ const Chatbot = () => {
                       <button
                         onClick={() => void onSend()}
                         disabled={loading || input.trim().length === 0}
-                        className="ml-3 p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-40 transition-all"
+                        className="ml-2 sm:ml-3 p-1.5 sm:p-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-40 transition-all"
                         type="button"
                         data-gtm-click="chat_send"
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                       </button>
@@ -765,3 +843,4 @@ const Chatbot = () => {
 };
 
 export default Chatbot;
+

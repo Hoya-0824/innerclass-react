@@ -46,6 +46,36 @@ const Home = () => {
   const [cardW, setCardW] = useState(360);
   const gap = 16;
 
+  /** Touch swipe support for mobile */
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const minSwipeDistance = 50; // 최소 스와이프 거리 (px)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const isSwipeLeft = distance > minSwipeDistance;
+    const isSwipeRight = distance < -minSwipeDistance;
+
+    if (isSwipeLeft && carouselCanRight) {
+      goCarousel("right");
+    } else if (isSwipeRight && carouselCanLeft) {
+      goCarousel("left");
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   const activeTab = useMemo(() => trendTabs.find((t) => t.id === activeTabId) ?? null, [trendTabs, activeTabId]);
 
   const recomputeCardWidth = () => {
@@ -100,7 +130,7 @@ const Home = () => {
         prompt: "오늘 주요 경제/증시 뉴스를 3~5개로 요약하고, 초보 투자자 관점에서 핵심 포인트와 주의할 점까지 설명해줘.",
         icon: (
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
           </svg>
         ),
       },
@@ -361,7 +391,7 @@ const Home = () => {
                 key={idx}
                 type="button"
                 onClick={() => goChatbot(item.prompt)}
-                className="group relative flex flex-col items-start justify-between gap-3 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-md"
+                className="group relative flex flex-col cursor-pointer items-start justify-between gap-3 overflow-hidden rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-1 hover:shadow-md"
                 title={item.label}
               >
                 <div className={`absolute -right-4 -top-4 h-16 w-16 rounded-full blur-2xl opacity-20 ${item.bg}`} />
@@ -372,7 +402,7 @@ const Home = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="mx-auto mt-10 max-w-2xl">
+          <div className="mx-auto mt-10 lg:mt-20 max-w-2xl">
             <div className="group relative">
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-200/50 via-purple-200/50 to-pink-200/50 blur-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               <div className="relative flex items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-[#216BFF]/20">
@@ -502,10 +532,13 @@ const Home = () => {
 
                   <div
                     ref={carouselWrapRef}
-                    className="overflow-hidden"
+                    className="overflow-hidden touch-pan-y"
                     onWheel={(e) => {
                       e.preventDefault();
                     }}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
                   >
                     <div
                       className="flex gap-4 will-change-transform"

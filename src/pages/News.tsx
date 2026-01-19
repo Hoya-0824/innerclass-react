@@ -11,6 +11,14 @@ import LoginGateOverlay from "../components/Auth/LoginGateOverlay";
 import type { BriefingExplain, Outlook } from "../components/News/NewsBriefingPanel";
 import { CarouselArrowButton, SlideRail } from "../components/News/NewsCarousel";
 
+// Weather and decoration assets
+import sunnyIcon from "../assets/weathers/sunny.png";
+import cloudyIcon from "../assets/weathers/cloudy.png";
+import rainyIcon from "../assets/weathers/rainy.png";
+import jewel1 from "../assets/weathers/jewel_1.png";
+import jewel2 from "../assets/weathers/jewel_2.png";
+import jewel3 from "../assets/weathers/jewel_3.png";
+
 type MarketFilter = "all" | "domestic" | "international";
 
 const PAGE_SIZE = 6;
@@ -202,9 +210,9 @@ function _normalizeChipText(x: any): string {
 
 type TopKeywordsPayload =
   | {
-      top_keywords?: string[];
-      counts?: { keyword: string; count: number }[];
-    }
+    top_keywords?: string[];
+    counts?: { keyword: string; count: number }[];
+  }
   | null
   | undefined;
 
@@ -229,6 +237,12 @@ function extractTopKeywords(topKeywords: TopKeywordsPayload): string[] {
 
   return [];
 }
+
+const WEATHER_IMAGES: Record<WeatherMood, string> = {
+  sunny: sunnyIcon,
+  cloudy: cloudyIcon,
+  rainy: rainyIcon,
+};
 
 function SectorChip({
   label,
@@ -271,23 +285,6 @@ function RiskChip({ text }: { text: string }) {
   );
 }
 
-function OverallWeatherBadge({ mood }: { mood: WeatherMood }) {
-  const ui = MOOD_UI[mood];
-
-  return (
-    <div className="flex items-center justify-end">
-      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white shadow-sm">
-        <span className="text-base leading-none">{ui.emoji}</span>
-        <div className="leading-tight">
-          <div className="text-[11px] font-semibold text-gray-500">종합 점수</div>
-          <div className="text-sm font-bold text-gray-900">{ui.label}</div>
-        </div>
-        <span className={["w-1.5 h-1.5 rounded-full", ui.dotClass].join(" ")} />
-      </div>
-    </div>
-  );
-}
-
 function KeywordChip({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center px-3 py-1.5 rounded-full border text-sm font-medium bg-white text-gray-700 border-gray-200 hover:border-gray-900 hover:text-gray-900 transition-colors">
@@ -325,53 +322,124 @@ function SelectionSummary({
   );
 
   const top5 = useMemo(() => extractTopKeywords(topKeywords), [topKeywords]);
+  const ui = MOOD_UI[overallMood];
+  const weatherImage = WEATHER_IMAGES[overallMood];
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+    <div className="flex flex-col lg:flex-row gap-6">
+      {/* Left Card - Criteria Summary */}
+      <div className="flex-1 bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm relative overflow-hidden">
+        <img
+          src={jewel2}
+          alt=""
+          className="absolute -top-10 md:-top-15 -right-5 md:right-10 w-32 h-32 md:w-56 md:h-56 pointer-events-none z-40 opacity-80"
+        />
+        <img
+          src={jewel3}
+          alt=""
+          className="absolute top-20 -right-4 md:-right-1 w-16 h-16 md:w-28 md:h-28 pointer-events-none z-20 opacity-80"
+        />
+        <img
+          src={jewel1}
+          alt=""
+          className="absolute top-28 right-16 md:top-25 md:right-50 w-16 h-16 md:w-30 md:h-30 pointer-events-none z-30 opacity-90"
+        />
+
+        {/* Header */}
+        <div className="mb-5">
           <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-700 text-sm font-bold">
-              AI
+            {/* Sparkle Icon Badge */}
+            <span className="inline-flex items-center justify-center w-7 h-7 text-blue-500">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+              </svg>
             </span>
-            <h3 className="text-base font-bold text-gray-900">선정 기준 요약</h3>
+            <h3 className="text-base font-bold text-gray-900">AI 선정 기준 요약</h3>
           </div>
           <p className="text-sm text-gray-500">유사도 추천(임베딩) + 보유종목 부스팅</p>
         </div>
 
-        {/* ✅ 오른쪽 종합 날씨 */}
-        <OverallWeatherBadge mood={overallMood} />
-      </div>
+        {/* Inner Container RESTORED with Blue Border */}
+        <div className="border-3 border-blue-50 rounded-xl p-4 lg:p-7 bg-blue-50/30 relative z-10">
+          {/* Interest Sectors - Row 1 */}
+          <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3 mb-4">
+            <div className="flex items-center gap-2 min-w-fit">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
+                {/* Database Icon */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                  <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+              </span>
+              <div className="text-sm font-semibold text-gray-800">유사도 추천 기준 관심사</div>
+            </div>
 
-      <div className="mt-5">
-        <div className="text-sm font-semibold text-gray-800 mb-2">유사도 추천 기준 관심사</div>
-        <div className="flex flex-wrap gap-2">
-          {chips.length > 0 ? (
-            chips.map((c) => <SectorChip key={c.label} label={c.label} mood={c.mood} />)
-          ) : (
-            <span className="text-sm text-gray-400">관심 섹터 정보가 없습니다.</span>
-          )}
+            <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
+              {chips.length > 0 ? (
+                chips.map((c) => <SectorChip key={c.label} label={c.label} mood={c.mood} />)
+              ) : (
+                <span className="text-sm text-gray-400">관심 섹터 정보가 없습니다.</span>
+              )}
 
-          {riskProfile ? <RiskChip text={riskProfile} /> : null}
+              {riskProfile ? <RiskChip text={riskProfile} /> : null}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-b border-blue-200/50 my-4" />
+
+          {/* Top Keywords - Row 2 */}
+          <div className="flex flex-col items-start gap-2 md:flex-row md:items-center md:gap-3">
+            <div className="flex items-center gap-2 min-w-fit">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 text-purple-600">
+                {/* Sparkle Icon */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" opacity="0" />
+                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a0.5 0.5 0 0 1 0-0.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a0.5 0.5 0 0 1 0.963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a0.5 0.5 0 0 1 0 0.962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a0.5 0.5 0 0 1-0.963 0z" />
+                </svg>
+              </span>
+              <div className="text-sm font-semibold text-gray-800">관련 키워드 TOP 5</div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pl-8 md:pl-0">
+              {top5.length > 0 ? (
+                top5.map((k) => <KeywordChip key={k} label={k} />)
+              ) : (
+                <span className="text-sm text-gray-400">키워드 정보가 없습니다.</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ✅ 관심사 아래: 관련 키워드 TOP 5 */}
-      <div className="mt-4">
-        <div className="text-sm font-semibold text-gray-800 mb-2">관련 키워드 TOP 5</div>
-        <div className="flex flex-wrap gap-2">
-          {top5.length > 0 ? (
-            top5.map((k) => <KeywordChip key={k} label={k} />)
-          ) : (
-            <span className="text-sm text-gray-400">키워드 정보가 없습니다.</span>
-          )}
+      {/* Right Card - Comprehensive Score */}
+      <div className="lg:w-64 bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm flex flex-col items-center justify-center">
+        <div className="text-sm font-semibold text-gray-600 mb-4">종합점수</div>
+
+        {/* Large Weather Icon */}
+        <div className="relative w-32 h-32 mb-4">
+          <img
+            src={weatherImage}
+            alt={ui.label}
+            className="w-full h-full object-contain"
+          />
+        </div>
+
+        {/* Mood Label */}
+        <div className={[
+          "px-4 py-2 rounded-full border text-sm font-bold",
+          ui.chipClass
+        ].join(" ")}>
+          {ui.emoji} {ui.label}
         </div>
       </div>
-
-      {/* 섹터별 분위기(카드/박스) 섹션은 제거: 칩으로 흡수 */}
     </div>
   );
 }
+
+
+
 
 const News = () => {
   const isLoggedIn = !!localStorage.getItem("access_token");
@@ -416,14 +484,14 @@ const News = () => {
       summary: item.summary,
       date: item.published_at
         ? (() => {
-            const d = new Date(item.published_at);
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            const hh = String(d.getHours()).padStart(2, "0");
-            const mi = String(d.getMinutes()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
-          })()
+          const d = new Date(item.published_at);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mi = String(d.getMinutes()).padStart(2, "0");
+          return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+        })()
         : "날짜 미상",
       tags: item.tags || [item.tag || "뉴스"],
       imageUrl:
@@ -441,21 +509,32 @@ const News = () => {
     return { news: sliced, keywords: response.data.keywords, explain, outlook, top_keywords };
   };
 
+  // ✅ Responsive Page Size
+  const [pageSize, setPageSize] = useState(() => (window.innerWidth < 768 ? 3 : 6));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPageSize(window.innerWidth < 768 ? 3 : 6);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const briefTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(aiBriefingNews.length / PAGE_SIZE)),
-    [aiBriefingNews.length]
+    () => Math.max(1, Math.ceil(aiBriefingNews.length / pageSize)),
+    [aiBriefingNews.length, pageSize]
   );
   const kwTotalPages = useMemo(
-    () => Math.max(1, Math.ceil(keywordNews.length / PAGE_SIZE)),
-    [keywordNews.length]
+    () => Math.max(1, Math.ceil(keywordNews.length / pageSize)),
+    [keywordNews.length, pageSize]
   );
 
   const briefingSlides = useMemo(() => {
     const slides: React.ReactNode[] = [];
-    const total = Math.max(1, Math.ceil(aiBriefingNews.length / PAGE_SIZE));
+    const total = Math.max(1, Math.ceil(aiBriefingNews.length / pageSize));
     for (let p = 0; p < total; p++) {
-      const start = p * PAGE_SIZE;
-      const items = aiBriefingNews.slice(start, start + PAGE_SIZE);
+      const start = p * pageSize;
+      const items = aiBriefingNews.slice(start, start + pageSize);
       slides.push(
         <div key={`brief-slide-${p}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
@@ -467,14 +546,14 @@ const News = () => {
       );
     }
     return slides;
-  }, [aiBriefingNews]);
+  }, [aiBriefingNews, pageSize]);
 
   const keywordSlides = useMemo(() => {
     const slides: React.ReactNode[] = [];
-    const total = Math.max(1, Math.ceil(keywordNews.length / PAGE_SIZE));
+    const total = Math.max(1, Math.ceil(keywordNews.length / pageSize));
     for (let p = 0; p < total; p++) {
-      const start = p * PAGE_SIZE;
-      const items = keywordNews.slice(start, start + PAGE_SIZE);
+      const start = p * pageSize;
+      const items = keywordNews.slice(start, start + pageSize);
       slides.push(
         <div key={`kw-slide-${p}`} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
@@ -486,7 +565,7 @@ const News = () => {
       );
     }
     return slides;
-  }, [keywordNews]);
+  }, [keywordNews, pageSize]);
 
   useEffect(() => {
     const init = async () => {
@@ -614,7 +693,7 @@ const News = () => {
               <div className="text-center py-10 text-gray-400">AI 브리핑을 불러오는 중입니다...</div>
             ) : aiBriefingNews.length > 0 ? (
               <div className="relative">
-                <SlideRail index={briefPage} childrenSlides={briefingSlides} />
+                <SlideRail index={briefPage} childrenSlides={briefingSlides} onSwipe={(dir) => goBrief(dir)} />
 
                 {showBriefArrows && (
                   <>
@@ -648,11 +727,10 @@ const News = () => {
                   <span
                     key={idx}
                     onClick={() => handleKeywordClick(keyword)}
-                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${
-                      selectedKeyword === keyword
-                        ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
-                        : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
-                    }`}
+                    className={`px-4 py-2 border rounded-full text-sm font-medium transition-all cursor-pointer ${selectedKeyword === keyword
+                      ? "bg-gray-900 border-gray-900 text-white shadow-md transform scale-105"
+                      : "bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-black hover:shadow-sm"
+                      }`}
                   >
                     {keyword}
                   </span>
@@ -666,7 +744,7 @@ const News = () => {
               <div className="text-center py-10 text-gray-400">키워드 뉴스를 불러오는 중입니다...</div>
             ) : keywordNews.length > 0 ? (
               <div className="relative">
-                <SlideRail index={kwPage} childrenSlides={keywordSlides} />
+                <SlideRail index={kwPage} childrenSlides={keywordSlides} onSwipe={(dir) => goKw(dir)} />
 
                 {showKwArrows && (
                   <>
@@ -692,7 +770,7 @@ const News = () => {
         {!isLoggedIn && <LoginGateOverlay />}
       </div>
 
-      <section className="mb-16">
+      {/* <section className="mb-16">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 inline-block mr-3">오늘의 트렌드 뉴스</h2>
           <p className="inline-block text-gray-500 text-sm mt-1">지금 시장에 영향을 준 뉴스만 골랐어요</p>
@@ -715,7 +793,7 @@ const News = () => {
             <TrendList items={TREND_VALUE} />
           </div>
         </div>
-      </section>
+      </section> */}
 
       {selectedNews && <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />}
     </div>

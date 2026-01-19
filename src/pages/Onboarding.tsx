@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import TermsModal from "../components/Footer/TermsModal";
 
 import type { UserData } from "../types/user";
 
@@ -29,16 +30,15 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
       {options.map((opt) => (
         <button
           key={opt}
           onClick={() => toggleAsset(opt)}
-          className={`p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-lg font-medium ${
-            (userData.assetType ?? []).includes(opt)
-              ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
-              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
-          }`}
+          className={`p-4 sm:p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-sm sm:text-lg font-medium ${(userData.assetType ?? []).includes(opt)
+            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
+            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
+            }`}
         >
           {opt}
         </button>
@@ -68,10 +68,10 @@ const Step2Sector = ({ userData, updateData }: StepProps) => {
 
   return (
     <div>
-      <p className="mb-4 text-sm text-gray-500">
+      <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-500">
         최대 3개까지 선택 가능합니다. <span className="text-gray-400">({selectedCount}/3)</span>
       </p>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         {options.map((opt) => {
           const selected = current.includes(opt);
           const disabled = !selected && selectedCount >= 3; // ✅ 3개 찼으면 비선택 항목 비활성
@@ -81,7 +81,7 @@ const Step2Sector = ({ userData, updateData }: StepProps) => {
               onClick={() => toggleSector(opt)}
               disabled={disabled}
               className={[
-                "px-4 py-2 rounded-full border transition-all duration-200",
+                "px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border transition-all duration-200 text-sm sm:text-base",
                 selected
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                   : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400",
@@ -226,16 +226,16 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
   const portfolio = Array.isArray(userData.portfolio) ? userData.portfolio : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="relative">
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={portfolioInput}
             onChange={(e) => setPortfolioInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="종목명 또는 티커 입력 (예: 삼성전자 / AAPL)"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+            placeholder="종목명 또는 티커 입력"
+            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
             onFocus={() => {
               if (suggestions.length > 0) setOpen(true);
             }}
@@ -246,7 +246,7 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
 
           <button
             onClick={() => addStock()}
-            className="px-6 py-3 bg-gray-900 text-white cursor-pointer rounded-lg hover:bg-gray-800 transition-colors font-medium"
+            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-900 text-white cursor-pointer rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm sm:text-base"
           >
             기록
           </button>
@@ -254,11 +254,11 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
 
         {open && (
           <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-            <div className="px-4 py-2 text-xs text-gray-500 bg-gray-50 flex items-center justify-between">
+            <div className="px-3 sm:px-4 py-2 text-xs text-gray-500 bg-gray-50 flex items-center justify-between">
               <span>자동완성</span>
               {loading && <span>검색중…</span>}
             </div>
-            <ul className="max-h-64 overflow-auto">
+            <ul className="max-h-48 sm:max-h-64 overflow-auto">
               {suggestions.map((it, idx) => {
                 const active = idx === highlight;
                 return (
@@ -267,12 +267,11 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                     onMouseEnter={() => setHighlight(idx)}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onPick(it)}
-                    className={`px-4 py-3 cursor-pointer flex items-center justify-between ${
-                      active ? "bg-indigo-50" : "bg-white"
-                    } hover:bg-indigo-50`}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer flex items-center justify-between ${active ? "bg-indigo-50" : "bg-white"
+                      } hover:bg-indigo-50`}
                   >
                     <div className="min-w-0">
-                      <div className="font-semibold text-gray-900 truncate">{it.name}</div>
+                      <div className="font-semibold text-gray-900 truncate text-sm sm:text-base">{it.name}</div>
                       <div className="text-xs text-gray-500">
                         {it.symbol}
                         {it.market ? ` • ${it.market}` : ""}
@@ -289,16 +288,16 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
       </div>
 
       {portfolio.length > 0 && (
-        <div className="bg-gray-50 rounded-xl p-4 min-h-[100px]">
-          <h4 className="text-sm font-semibold text-gray-500 mb-3">등록된 종목</h4>
+        <div className="bg-gray-50 rounded-xl p-3 sm:p-4 min-h-[80px] sm:min-h-[100px]">
+          <h4 className="text-xs sm:text-sm font-semibold text-gray-500 mb-2 sm:mb-3">등록된 종목</h4>
           <div className="flex flex-wrap gap-2">
             {portfolio.map((stock) => (
               <span
                 key={stock}
-                className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-800"
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 bg-white border border-gray-200 rounded-md shadow-sm text-xs sm:text-sm text-gray-800"
               >
                 {stock}
-                <button onClick={() => removeStock(stock)} className="text-gray-400 hover:text-red-500 ml-1">
+                <button onClick={() => removeStock(stock)} className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer">
                   ×
                 </button>
               </span>
@@ -312,32 +311,33 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
 
 const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
   const profiles = [
-    { id: "A", title: "공격형", desc: "손실 위험이 있어도 고수익을 노립니다.", sub: "(성장주 위주)" },
-    { id: "B", title: "중립형", desc: "시장 수익률 정도면 만족합니다.", sub: "(ETF/우량주)" },
-    { id: "C", title: "안정형", desc: "원금 보존과 배당이 중요합니다.", sub: "(채권/배당주)" },
+    { id: "A", title: "공격형", desc: "손실 위험이 있어도 고수익을 노립니다.", sub: "(성장주 위주)", emoji: "🔥" },
+    { id: "B", title: "중립형", desc: "시장 수익률 정도면 만족합니다.", sub: "(ETF/우량주)", emoji: "⚖️" },
+    { id: "C", title: "안정형", desc: "원금 보존과 배당이 중요합니다.", sub: "(채권/배당주)", emoji: "🛡️" },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {profiles.map((p) => (
         <div
           key={p.id}
           onClick={() => updateData("riskProfile", p.id)}
-          className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
-            userData.riskProfile === p.id ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-          }`}
+          className={`cursor-pointer p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${userData.riskProfile === p.id ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+            }`}
         >
-          <div>
-            <h4 className={`text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>{p.title}</h4>
-            <p className="text-gray-600 mt-1">{p.desc}</p>
-            <p className="text-xs text-gray-400 mt-1">{p.sub}</p>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span className="text-2xl sm:text-3xl">{p.emoji}</span>
+            <div>
+              <h4 className={`text-base sm:text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>{p.title}</h4>
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">{p.desc}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
+            </div>
           </div>
           <div
-            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-              userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
-            }`}
+            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
+              }`}
           >
-            {userData.riskProfile === p.id && <div className="w-3 h-3 bg-indigo-600 rounded-full" />}
+            {userData.riskProfile === p.id && <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-indigo-600 rounded-full" />}
           </div>
         </div>
       ))}
@@ -347,34 +347,33 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
 
 const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
   const levels = [
-    { level: 1, title: "주린이", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"' },
-    { level: 2, title: "초보자", desc: '"금리 인상으로 인해 시장 유동성이 줄어들고 있어요. 보수적인 접근이 필요합니다."' },
-    { level: 3, title: "중급자", desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다. 포트폴리오 재구성이 필요해 보여요."' },
-    { level: 4, title: "숙련자", desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다. 현금 비중을 확대하고 방어주 위주의 전략을 추천합니다."' },
-    { level: 5, title: "전문가", desc: '"FOMC의 매파적 기조로 국채 금리가 급등하며 밸류에이션 부담이 가중되었습니다. 리스크 오프 전략이 유효합니다."' },
+    { level: 1, title: "주린이", desc: '"금리가 올라서 주식 시장이 전체적으로 힘들어요. 당분간 조심하세요!"', medal: "🥉" },
+    { level: 2, title: "초보자", desc: '"금리 인상으로 인해 시장 유동성이 줄어들고 있어요. 보수적인 접근이 필요합니다."', medal: "🥈" },
+    { level: 3, title: "중급자", desc: '"기준금리 인상이 지속되면서 기술주 중심의 하락이 예상됩니다."', medal: "🥇" },
+    { level: 4, title: "숙련자", desc: '"긴축 통화 정책으로 인한 밸류에이션 조정이 진행 중입니다."', medal: "💠" },
+    { level: 5, title: "전문가", desc: '"FOMC의 매파적 기조로 국채 금리가 급등하며 밸류에이션 부담이 가중되었습니다."', medal: "💎" },
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {levels.map((l) => (
         <div
           key={l.level}
           onClick={() => updateData("knowledgeLevel", l.level)}
-          className={`cursor-pointer p-4 rounded-xl border transition-all duration-200 ${
-            userData.knowledgeLevel === l.level ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-          }`}
+          className={`cursor-pointer p-3 sm:p-4 rounded-xl border transition-all duration-200 ${userData.knowledgeLevel === l.level ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+            }`}
         >
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+            <span className="text-lg sm:text-xl">{l.medal}</span>
             <span
-              className={`px-2 py-1 rounded-md text-xs font-bold ${
-                userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
-              }`}
+              className={`px-2 py-0.5 sm:py-1 rounded-md text-xs font-bold ${userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
+                }`}
             >
               Lv.{l.level}
             </span>
-            <span className="font-bold text-gray-900">{l.title}</span>
+            <span className="font-bold text-gray-900 text-sm sm:text-base">{l.title}</span>
           </div>
-          <p className="text-sm text-gray-600 italic">{l.desc}</p>
+          <p className="text-xs sm:text-sm text-gray-600 italic leading-relaxed">{l.desc}</p>
         </div>
       ))}
     </div>
@@ -385,6 +384,9 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditing = location.state?.isEditing;
+
+  // 약관 동의 모달 상태 (수정 모드가 아닐 때만 true로 시작)
+  const [showTerms, setShowTerms] = useState(!isEditing);
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [userData, setUserData] = useState<UserData>({
@@ -473,7 +475,7 @@ const Onboarding = () => {
       setCurrentStep((prev) => (prev + 1) as Step);
     } else {
       await submitData();
-      navigate("/mypage");
+      navigate(isEditing ? "/mypage" : "/");
     }
   };
 
@@ -506,30 +508,45 @@ const Onboarding = () => {
     }
   };
 
+  const stepTitles = [
+    "주로 투자하시는 자산은 무엇인가요?",
+    "관심 있는 산업 분야를 골라주세요.",
+    "현재 보유 중인 종목이 있다면 알려주세요.",
+    "자신에게 해당되는 투자 스타일을 선택해 주세요.",
+    "어떤 스타일의 요약을 선호하시나요?",
+  ];
+
   return (
-    <div className="min-h-screen flex items-start justify-center p-4 pt-20">
+    <div className="min-h-screen flex items-start justify-center px-3 sm:px-4 pt-8 sm:pt-20 pb-8" style={{ backgroundColor: '#f5f3ff' }}>
+      {showTerms && (
+        <TermsModal
+          onClose={() => navigate("/login")}
+          onAgree={() => setShowTerms(false)}
+        />
+      )}
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gray-100 h-2 w-full">
+        {/* Progress bar */}
+        <div className="bg-gray-100 h-1.5 sm:h-2 w-full">
           <div className="h-full bg-indigo-600 transition-all duration-500 ease-out" style={{ width: `${(currentStep / 5) * 100}%` }} />
         </div>
 
-        <div className="p-8">
-          <div className="mb-8">
-            <span className="text-indigo-600 font-bold tracking-wider text-xs uppercase mb-2 block">Step {currentStep} of 5</span>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {currentStep === 1 && "주로 투자하시는 자산은 무엇인가요?"}
-              {currentStep === 2 && "관심 있는 산업 분야를 골라주세요."}
-              {currentStep === 3 && "현재 보유 중인 종목이 있다면 알려주세요."}
-              {currentStep === 4 && "자신에게 해당되는 투자 스타일을 선택해 주세요."}
-              {currentStep === 5 && "어떤 스타일의 요약을 선호하시나요?"}
+        <div className="p-5 sm:p-8">
+          {/* Header */}
+          <div className="mb-6 sm:mb-8">
+            <span className="text-indigo-600 font-bold tracking-wider text-[10px] sm:text-xs uppercase mb-1.5 sm:mb-2 block">
+              Step {currentStep} of 5
+            </span>
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-2 leading-tight">
+              {stepTitles[currentStep - 1]}
             </h2>
-            <p className="text-gray-500">
-              {currentStep === 3 && "가장 먼저 분석해 드립니다."}
+            <p className="text-xs sm:text-sm text-gray-500">
+              {currentStep === 3 && "한국(KRX) 및 미국(US) 주식 검색 가능"}
               {currentStep === 5 && "예시를 읽고 선택해 주세요."}
             </p>
           </div>
 
-          <div className="mb-8 min-h-[300px]">
+          {/* Content */}
+          <div className="mb-6 sm:mb-8 min-h-[250px] sm:min-h-[300px]">
             {currentStep === 1 && <Step1AssetType userData={userData} updateData={updateData} />}
             {currentStep === 2 && <Step2Sector userData={userData} updateData={updateData} />}
             {currentStep === 3 && (
@@ -539,22 +556,21 @@ const Onboarding = () => {
             {currentStep === 5 && <Step5KnowledgeLevel userData={userData} updateData={updateData} />}
           </div>
 
-          <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+          {/* Navigation */}
+          <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-gray-100">
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className={`px-6 py-2.5 rounded-lg cursor-pointer font-medium transition-colors ${
-                currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
-              }`}
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg cursor-pointer font-medium transition-colors text-sm sm:text-base ${currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
+                }`}
             >
               이전
             </button>
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`px-8 py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 ${
-                !isStepValid() ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
-              }`}
+              className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 text-sm sm:text-base ${!isStepValid() ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
+                }`}
             >
               {currentStep === 5 ? (isEditing ? "수정 완료" : "완료") : "다음"}
             </button>

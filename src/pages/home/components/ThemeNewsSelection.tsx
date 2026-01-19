@@ -215,14 +215,14 @@ function toModalNewsItem(n: ThemeNewsItem): ModalNewsItem {
     summary: n.summary,
     date: n.published_at
       ? (() => {
-          const d = new Date(n.published_at);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, "0");
-          const day = String(d.getDate()).padStart(2, "0");
-          const hours = String(d.getHours()).padStart(2, "0");
-          const minutes = String(d.getMinutes()).padStart(2, "0");
-          return `${year}-${month}-${day} ${hours}:${minutes}`;
-        })()
+        const d = new Date(n.published_at);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hours = String(d.getHours()).padStart(2, "0");
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+      })()
       : "날짜 미상",
     tags: (n.tags && n.tags.length ? n.tags : []).slice(0),
     imageUrl:
@@ -368,13 +368,13 @@ export function ThemeNewsSelection() {
         {/* Left: Theme */}
         <div className={classNames("w-full", LEFT_W)}>
           <div className="relative rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <ScrollHint
+            {/* <ScrollHint
               show={themeHints.hasOverflow}
               canUp={themeHints.canUp}
               canDown={themeHints.canDown}
               label="테마 목록 스크롤 가능"
               position="left"
-            />
+            /> */}
 
             <div className="sr-only" aria-live="polite">
               {loadingThemes ? "섹터 로딩 중" : "섹터 로딩 완료"}
@@ -447,13 +447,13 @@ export function ThemeNewsSelection() {
         {/* Right: News */}
         <div className={classNames("w-full", RIGHT_W)}>
           <div className="relative rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <ScrollHint
+            {/* <ScrollHint
               show={newsHints.hasOverflow}
               canUp={newsHints.canUp}
               canDown={newsHints.canDown}
               label="테마별 뉴스 스크롤 가능"
               position="right"
-            />
+            /> */}
 
             <div className="sr-only" aria-live="polite">
               {loadingNews

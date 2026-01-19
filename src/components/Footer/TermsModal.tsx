@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 
 interface TermsModalProps {
     onClose: () => void;
+    onAgree?: () => void;
 }
 
-const TermsModal: React.FC<TermsModalProps> = ({ onClose }) => {
+const TermsModal: React.FC<TermsModalProps> = ({ onClose, onAgree }) => {
     // ESC 키로 모달 닫기
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -170,10 +171,10 @@ const TermsModal: React.FC<TermsModalProps> = ({ onClose }) => {
                 {/* Footer Button (Mobile friendly) */}
                 <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl flex justify-end">
                     <button
-                        onClick={onClose}
+                        onClick={onAgree || onClose}
                         className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium text-sm"
                     >
-                        확인
+                        {onAgree ? '동의하고 계속하기' : '확인'}
                     </button>
                 </div>
             </div>

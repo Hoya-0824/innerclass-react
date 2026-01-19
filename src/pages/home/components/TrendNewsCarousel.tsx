@@ -90,9 +90,9 @@ export function TrendNewsCard({
             <span
               key={`${tag}-${idx}`}
               className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-md hover:bg-gray-200 transition-colors cursor-pointer font-medium"
-              // 태그 클릭이 카드 클릭(모달 오픈)으로 전파되는 걸 막고 싶으면 아래 주석 해제
-              // onClick={(e) => e.stopPropagation()}
-              // onMouseDown={(e) => e.stopPropagation()}
+            // 태그 클릭이 카드 클릭(모달 오픈)으로 전파되는 걸 막고 싶으면 아래 주석 해제
+            // onClick={(e) => e.stopPropagation()}
+            // onMouseDown={(e) => e.stopPropagation()}
             >
               {tag}
             </span>
@@ -113,12 +113,13 @@ export function CarouselArrowButton({
   disabled: boolean;
   onClick: () => void;
 }) {
+  // PC: 캐러셀 외부에 배치 (-left-14, -right-14)
+  // Mobile: 숨김 (hidden md:flex) - 스와이프로 대체
   const base =
-    "absolute top-1/2 -translate-y-1/2 z-10 rounded-full p-2 sm:p-2.5 ring-1 transition " +
-    "backdrop-blur bg-white/70 hover:bg-white shadow-sm";
-  const pos = dir === "left" ? "left-2" : "right-2";
+    "absolute top-1/2 -translate-y-1/2 z-10 rounded-full p-2 sm:p-2.5 transition hidden md:flex";
+  const pos = dir === "left" ? "md:-left-14 left-2" : "md:-right-14 right-2";
   const state = disabled
-    ? "opacity-30 cursor-not-allowed ring-black/5"
+    ? "opacity-30 cursor-default ring-black/5"
     : "opacity-100 cursor-pointer ring-black/10 hover:ring-black/20";
 
   return (
@@ -127,12 +128,26 @@ export function CarouselArrowButton({
       aria-label={dir === "left" ? "이전" : "다음"}
       disabled={disabled}
       onClick={onClick}
+      draggable={false}
+      onDragStart={(e) => e.preventDefault()}
       className={`${base} ${pos} ${state}`}
     >
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#216BFF]/10">
-        <span className="text-xl leading-none text-neutral-800">
-          {dir === "left" ? "‹" : "›"}
-        </span>
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-200/80 hover:bg-neutral-300 transition-colors">
+        <svg
+          className="h-5 w-5 text-neutral-600"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          viewBox="0 0 24 24"
+        >
+          {dir === "left" ? (
+            <path d="M15 18l-6-6 6-6" />
+          ) : (
+            <path d="M9 18l6-6-6-6" />
+          )}
+        </svg>
       </span>
     </button>
   );
