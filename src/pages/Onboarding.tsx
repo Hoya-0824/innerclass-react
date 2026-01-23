@@ -1,14 +1,29 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+// src/pages/Onboarding.tsx
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import TermsModal from "../components/Footer/TermsModal";
 
 import type { UserData } from "../types/user";
 
 type Step = 1 | 2 | 3 | 4 | 5;
+const TOTAL_STEPS = 5;
+
+// --- Small UI: Speech Bubble ---
+const SpeechBubble = ({ text }: { text: string }) => {
+  if (!text) return null;
+
+  return (
+    <div className="mt-2 sm:mt-3">
+      <div className="inline-flex items-center bg-gray-200 text-gray-500 px-4 py-2 rounded-full text-xs sm:text-sm font-medium relative">
+        {text}
+        <span className="absolute left-6 -bottom-2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-gray-200" />
+      </div>
+    </div>
+  );
+};
 
 // --- Step Components (Extracted to prevent re-renders) ---
-
 interface StepProps {
   userData: UserData;
   updateData: (key: keyof UserData, value: any) => void;
@@ -35,10 +50,11 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
         <button
           key={opt}
           onClick={() => toggleAsset(opt)}
-          className={`p-4 sm:p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-sm sm:text-lg font-medium ${(userData.assetType ?? []).includes(opt)
-            ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
-            : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
-            }`}
+          className={`p-4 sm:p-6 rounded-xl border-2 transition-all cursor-pointer duration-200 text-sm sm:text-lg font-medium ${
+            (userData.assetType ?? []).includes(opt)
+              ? "border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md"
+              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700"
+          }`}
         >
           {opt}
         </button>
@@ -48,7 +64,15 @@ const Step1AssetType = ({ userData, updateData }: StepProps) => {
 };
 
 const Step2Sector = ({ userData, updateData }: StepProps) => {
-  const options = ["반도체/AI", "배터리", "IT/인터넷", "바이오/건강", "자동차", "친환경/석유에너지", "금융/지주"];
+  const options = [
+    "반도체/AI",
+    "배터리",
+    "IT/인터넷",
+    "바이오/건강",
+    "자동차",
+    "친환경/석유에너지",
+    "금융/지주",
+  ];
 
   const current = Array.isArray(userData.sectors) ? userData.sectors : [];
   const selectedCount = current.length;
@@ -62,19 +86,20 @@ const Step2Sector = ({ userData, updateData }: StepProps) => {
       );
       return;
     }
-    if (now.length >= 3) return; // ✅ 최대 3개 제한
+    if (now.length >= 3) return;
     updateData("sectors", [...now, sector]);
   };
 
   return (
     <div>
       <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-gray-500">
-        최대 3개까지 선택 가능합니다. <span className="text-gray-400">({selectedCount}/3)</span>
+        최대 3개까지 선택 가능합니다.{" "}
+        <span className="text-gray-400">({selectedCount}/3)</span>
       </p>
       <div className="flex flex-wrap gap-2 sm:gap-3">
         {options.map((opt) => {
           const selected = current.includes(opt);
-          const disabled = !selected && selectedCount >= 3; // ✅ 3개 찼으면 비선택 항목 비활성
+          const disabled = !selected && selectedCount >= 3;
           return (
             <button
               key={opt}
@@ -85,7 +110,9 @@ const Step2Sector = ({ userData, updateData }: StepProps) => {
                 selected
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
                   : "bg-white text-gray-700 border-gray-300 hover:border-indigo-400",
-                disabled ? "opacity-40 cursor-not-allowed hover:border-gray-300" : "cursor-pointer",
+                disabled
+                  ? "opacity-40 cursor-not-allowed hover:border-gray-300"
+                  : "cursor-pointer",
               ].join(" ")}
             >
               {opt}
@@ -108,17 +135,20 @@ type SuggestItem = {
   market?: string | null;
 };
 
-const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInput }: Step3Props) => {
+const Step3Portfolio = ({
+  userData,
+  updateData,
+  portfolioInput,
+  setPortfolioInput,
+}: Step3Props) => {
   const [suggestions, setSuggestions] = useState<SuggestItem[]>([]);
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
   const [loading, setLoading] = useState(false);
 
-  // ✅ 등록 시 ticker(심볼) 제거: "삼성전자 (005930)" -> "삼성전자"
   const normalizeRegisterName = (text: string) => {
     const t = (text ?? "").trim();
     if (!t) return "";
-    // 끝에 붙은 "(...)" 패턴 제거
     return t.replace(/\s*\([^)]*\)\s*$/, "").trim();
   };
 
@@ -148,12 +178,8 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     );
   };
 
-  // ✅ Step1 자산 선택과 무관하게 항상 전시장 자동완성
-  //    - 서버가 market 파라미터 없이 ALL로 처리한다면 market 생략 가능
-  //    - 지금은 명시적으로 market=ALL을 보냄 (KOSPI/KOSDAQ/NASDAQ 전부 포함 의도)
   const marketParam = "ALL" as const;
 
-  // 검색 API 호출 (debounce)
   useEffect(() => {
     const q = portfolioInput.trim();
     if (!q) {
@@ -167,9 +193,10 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     const t = window.setTimeout(async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/markets/symbols/suggest/`, {
-          params: { q, limit: 10, market: marketParam },
-        });
+        const res = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/markets/symbols/suggest/`,
+          { params: { q, limit: 10, market: marketParam } }
+        );
 
         if (canceled) return;
         const results: SuggestItem[] = res.data?.results ?? [];
@@ -222,19 +249,15 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
     }
 
     if (e.key === "Enter") {
-      // ✅ 자동완성 선택 중이면 "name"만 등록 (ticker 제거)
       if (open && highlight >= 0 && highlight < suggestions.length) {
         const item = suggestions[highlight];
         addStock(item.name);
       } else {
-        // ✅ 사용자가 티커로 입력했을 때도 등록 값에서 "(...)" 제거만 적용
-        // (예: "Apple (AAPL)" 입력했으면 "Apple"로 저장)
         addStock();
       }
     }
   };
 
-  // ✅ 클릭 선택도 "name"만 등록
   const onPick = (item: SuggestItem) => addStock(item.name);
 
   const portfolio = Array.isArray(userData.portfolio) ? userData.portfolio : [];
@@ -281,12 +304,11 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                     onMouseEnter={() => setHighlight(idx)}
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => onPick(it)}
-                    className={`px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer flex items-center justify-between ${active ? "bg-indigo-50" : "bg-white"
-                      } hover:bg-indigo-50`}
+                    className={`px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer flex items-center justify-between ${
+                      active ? "bg-indigo-50" : "bg-white"
+                    } hover:bg-indigo-50`}
                   >
                     <div className="min-w-0">
-
-                      {/* ✅ 리스트에서는 티커를 보여주되, 등록은 name만 */}
                       <div className="font-semibold text-gray-900 truncate">{it.name}</div>
                       <div className="text-xs text-gray-500">
                         {it.symbol}
@@ -297,7 +319,9 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                   </li>
                 );
               })}
-              {suggestions.length === 0 && <li className="px-4 py-3 text-sm text-gray-500">검색 결과가 없습니다.</li>}
+              {suggestions.length === 0 && (
+                <li className="px-4 py-3 text-sm text-gray-500">검색 결과가 없습니다.</li>
+              )}
             </ul>
           </div>
         )}
@@ -313,7 +337,10 @@ const Step3Portfolio = ({ userData, updateData, portfolioInput, setPortfolioInpu
                 className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1 bg-white border border-gray-200 rounded-md shadow-sm text-xs sm:text-sm text-gray-800"
               >
                 {stock}
-                <button onClick={() => removeStock(stock)} className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer">
+                <button
+                  onClick={() => removeStock(stock)}
+                  className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
+                >
                   ×
                 </button>
               </span>
@@ -338,20 +365,26 @@ const Step4RiskProfile = ({ userData, updateData }: StepProps) => {
         <div
           key={p.id}
           onClick={() => updateData("riskProfile", p.id)}
-          className={`cursor-pointer p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${userData.riskProfile === p.id ? "border-indigo-600 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-            }`}
+          className={`cursor-pointer p-4 sm:p-5 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${
+            userData.riskProfile === p.id
+              ? "border-indigo-600 bg-indigo-50 shadow-md"
+              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+          }`}
         >
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="text-2xl sm:text-3xl">{p.emoji}</span>
             <div>
-              <h4 className={`text-base sm:text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>{p.title}</h4>
+              <h4 className={`text-base sm:text-lg font-bold ${userData.riskProfile === p.id ? "text-indigo-800" : "text-gray-900"}`}>
+                {p.title}
+              </h4>
               <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">{p.desc}</p>
               <p className="text-xs text-gray-400 mt-0.5">{p.sub}</p>
             </div>
           </div>
           <div
-            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
-              }`}
+            className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+              userData.riskProfile === p.id ? "border-indigo-600" : "border-gray-300"
+            }`}
           >
             {userData.riskProfile === p.id && <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-indigo-600 rounded-full" />}
           </div>
@@ -376,14 +409,18 @@ const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
         <div
           key={l.level}
           onClick={() => updateData("knowledgeLevel", l.level)}
-          className={`cursor-pointer p-3 sm:p-4 rounded-xl border transition-all duration-200 ${userData.knowledgeLevel === l.level ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600" : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
-            }`}
+          className={`cursor-pointer p-3 sm:p-4 rounded-xl border transition-all duration-200 ${
+            userData.knowledgeLevel === l.level
+              ? "border-indigo-600 bg-indigo-50 shadow-md ring-1 ring-indigo-600"
+              : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+          }`}
         >
           <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2">
             <span className="text-lg sm:text-xl">{l.medal}</span>
             <span
-              className={`px-2 py-0.5 sm:py-1 rounded-md text-xs font-bold ${userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
-                }`}
+              className={`px-2 py-0.5 sm:py-1 rounded-md text-xs font-bold ${
+                userData.knowledgeLevel === l.level ? "bg-indigo-200 text-indigo-800" : "bg-gray-200 text-gray-700"
+              }`}
             >
               Lv.{l.level}
             </span>
@@ -396,15 +433,78 @@ const Step5KnowledgeLevel = ({ userData, updateData }: StepProps) => {
   );
 };
 
+// ✅ 스플래시(정중앙 정렬) - 3초 노출 후 fade-out
+const OnboardingSplash = ({ fading }: { fading: boolean }) => {
+  return (
+    <div
+      className={[
+        "fixed inset-0 z-[60] overflow-hidden",
+        "transition-opacity duration-700 ease-out",
+        fading ? "opacity-0 pointer-events-none" : "opacity-100",
+      ].join(" ")}
+      style={{
+        background:
+          "radial-gradient(1200px 500px at 20% 70%, rgba(99,102,241,0.16), transparent 60%), linear-gradient(180deg, #f5f3ff 0%, #fbfbff 100%)",
+      }}
+    >
+      {/* decor */}
+      <div className="absolute -left-36 bottom-0 w-[520px] h-[520px] opacity-25">
+        <div
+          className="w-full h-full rounded-full"
+          style={{
+            background:
+              "conic-gradient(from 180deg at 50% 50%, rgba(99,102,241,0.0), rgba(99,102,241,0.35), rgba(99,102,241,0.0))",
+            filter: "blur(1px)",
+            maskImage: "radial-gradient(circle at 30% 70%, black 0%, transparent 70%)",
+            WebkitMaskImage: "radial-gradient(circle at 30% 70%, black 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* ✅ 핵심: 전체를 가로/세로 중앙 정렬 */}
+      <div className="h-full w-full flex items-center justify-center px-6 sm:px-10">
+        <div className="w-full max-w-3xl text-center">
+          {/* icon */}
+          <div className="relative mx-auto w-fit mb-6 sm:mb-8">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full blur-2xl bg-indigo-300/40 absolute inset-0 -z-10" />
+            <svg width="76" height="76" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 2C12.7 6.7 15.3 9.3 20 10C15.3 10.7 12.7 13.3 12 18C11.3 13.3 8.7 10.7 4 10C8.7 9.3 11.3 6.7 12 2Z"
+                fill="url(#g1)"
+              />
+              <defs>
+                <linearGradient id="g1" x1="4" y1="2" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#60A5FA" />
+                  <stop offset="0.55" stopColor="#6366F1" />
+                  <stop offset="1" stopColor="#A855F7" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+
+          {/* text */}
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+            맞춤추천을 위해 몇 가지만 알려주세요.
+          </h1>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-gray-600">
+            AI가 당신에게 필요한 뉴스만 브리핑 해드릴게요.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Onboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isEditing = location.state?.isEditing;
+  const isEditing = !!location.state?.isEditing;
 
-  // 약관 동의 모달 상태 (수정 모드가 아닐 때만 true로 시작)
   const [showTerms, setShowTerms] = useState(!isEditing);
 
+  // ✅ step0 제거: 기본은 step1부터
   const [currentStep, setCurrentStep] = useState<Step>(1);
+
   const [userData, setUserData] = useState<UserData>({
     assetType: [],
     sectors: [],
@@ -415,7 +515,24 @@ const Onboarding = () => {
 
   const [portfolioInput, setPortfolioInput] = useState("");
 
-  // ✅ 서버 응답 정규화(배열 보장)
+  // ✅ 스플래시 제어
+  const [profileChecked, setProfileChecked] = useState(false);
+  const [shouldShowSplash, setShouldShowSplash] = useState(false);
+  const [splashFading, setSplashFading] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
+
+  // ✅ 말풍선 문구(5개 단계)
+  const stepBubbles: Record<Step, string> = useMemo(
+    () => ({
+      1: "자산에 맞게 추천해드려요",
+      2: "요즘 핫한 테마를 추천드려요",
+      3: "보유 자산 위주로 먼저 분석해 드려요",
+      4: "투자스타일에 맞게 추천해드려요",
+      5: "선호에 맞춘 서비스로 제공해요",
+    }),
+    []
+  );
+
   const normalizeUserData = (raw: any): UserData => {
     const toArray = (v: any): string[] => {
       if (Array.isArray(v)) return v.filter(Boolean).map(String);
@@ -437,33 +554,73 @@ const Onboarding = () => {
     };
   };
 
+  // ✅ 온보딩 완료 여부 확인 + 신규면 스플래시 노출 준비
   useEffect(() => {
     const checkProfile = async () => {
       try {
         const accessToken = localStorage.getItem("access_token");
-        if (!accessToken) return;
+        if (!accessToken) {
+          setProfileChecked(true);
+          setContentReady(true);
+          return;
+        }
 
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
 
         const normalized = normalizeUserData(response.data);
 
+        // 편집이면 기존 데이터를 로드하고 바로 step1(스플래시 없음)
         if (isEditing) {
           setUserData(normalized);
-        } else {
-          if (normalized.assetType.length > 0) {
-            navigate("/");
-          }
+          setCurrentStep(1);
+          setProfileChecked(true);
+          setContentReady(true);
+          return;
         }
+
+        // 이미 온보딩 완료면 홈으로
+        if (normalized.assetType.length > 0) {
+          navigate("/");
+          return;
+        }
+
+        // 신규: step1 준비, 약관 동의 후 스플래시 진행
+        setUserData(normalized);
+        setCurrentStep(1);
+        setProfileChecked(true);
       } catch {
-        // ignore
+        setProfileChecked(true);
       }
     };
 
     checkProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, isEditing]);
+
+  // ✅ 약관 모달 동의 후 + 신규일 때만 스플래시 시작
+  useEffect(() => {
+    if (!profileChecked) return;
+    if (isEditing) return;
+    if (showTerms) return;
+
+    setShouldShowSplash(true);
+    setSplashFading(false);
+    setContentReady(false);
+
+    const t1 = window.setTimeout(() => setSplashFading(true), 3000);
+    const t2 = window.setTimeout(() => {
+      setShouldShowSplash(false);
+      setContentReady(true);
+    }, 3000 + 700);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [profileChecked, isEditing, showTerms]);
 
   const submitData = async () => {
     try {
@@ -478,9 +635,11 @@ const Onboarding = () => {
         knowledgeLevel: Number(userData.knowledgeLevel ?? 0),
       };
 
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`, payload, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/user/onboarding/`,
+        payload,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
     } catch (error) {
       console.error("온보딩 데이터 전송 실패: ", error);
     }
@@ -488,7 +647,7 @@ const Onboarding = () => {
 
   const handleNext = async () => {
     if (currentStep < 5) {
-      setCurrentStep((prev) => (prev + 1) as Step);
+      setCurrentStep((prev) => ((prev + 1) as Step));
     } else {
       await submitData();
       navigate(isEditing ? "/mypage" : "/");
@@ -497,7 +656,7 @@ const Onboarding = () => {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as Step);
+      setCurrentStep((prev) => ((prev - 1) as Step));
     }
   };
 
@@ -532,61 +691,89 @@ const Onboarding = () => {
     "어떤 스타일의 요약을 선호하시나요?",
   ];
 
+  const progressWidth = (Number(currentStep) / TOTAL_STEPS) * 100;
+
   return (
-    <div className="min-h-screen flex items-start justify-center px-3 sm:px-4 pt-8 sm:pt-20 pb-8" style={{ backgroundColor: '#f5f3ff' }}>
+    <div
+      className="min-h-screen flex items-start justify-center px-3 sm:px-4 pt-8 sm:pt-20 pb-8 relative"
+      style={{ backgroundColor: "#f5f3ff" }}
+    >
+      {/* ✅ 스플래시 오버레이 */}
+      {shouldShowSplash && <OnboardingSplash fading={splashFading} />}
+
       {showTerms && (
         <TermsModal
           onClose={() => navigate("/login")}
           onAgree={() => setShowTerms(false)}
         />
       )}
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+
+      {/* ✅ 본문은 스플래시 끝난 뒤 자연스럽게 등장 */}
+      <div
+        className={[
+          "bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden",
+          "transition-all duration-700 ease-out",
+          contentReady || isEditing ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
+        ].join(" ")}
+      >
         {/* Progress bar */}
         <div className="bg-gray-100 h-1.5 sm:h-2 w-full">
-          <div className="h-full bg-indigo-600 transition-all duration-500 ease-out" style={{ width: `${(currentStep / 5) * 100}%` }} />
+          <div
+            className="h-full bg-indigo-600 transition-all duration-500 ease-out"
+            style={{ width: `${progressWidth}%` }}
+          />
         </div>
 
         <div className="p-5 sm:p-8">
-          {/* Header */}
+          <div className="mb-5 sm:mb-6 text-center">
+          </div>
+
           <div className="mb-6 sm:mb-8">
             <span className="text-indigo-600 font-bold tracking-wider text-[10px] sm:text-xs uppercase mb-1.5 sm:mb-2 block">
-              Step {currentStep} of 5
+              Step {currentStep} of {TOTAL_STEPS}
             </span>
+
             <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-1.5 sm:mb-2 leading-tight">
               {stepTitles[currentStep - 1]}
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500">
-              {currentStep === 3 && "한국(KRX) 및 미국(US) 주식 검색 가능"}
-              {currentStep === 5 && "예시를 읽고 선택해 주세요."}
-            </p>
+
+            <SpeechBubble text={stepBubbles[currentStep]} />
           </div>
 
-          {/* Content */}
           <div className="mb-6 sm:mb-8 min-h-[250px] sm:min-h-[300px]">
             {currentStep === 1 && <Step1AssetType userData={userData} updateData={updateData} />}
             {currentStep === 2 && <Step2Sector userData={userData} updateData={updateData} />}
             {currentStep === 3 && (
-              <Step3Portfolio userData={userData} updateData={updateData} portfolioInput={portfolioInput} setPortfolioInput={setPortfolioInput} />
+              <Step3Portfolio
+                userData={userData}
+                updateData={updateData}
+                portfolioInput={portfolioInput}
+                setPortfolioInput={setPortfolioInput}
+              />
             )}
             {currentStep === 4 && <Step4RiskProfile userData={userData} updateData={updateData} />}
             {currentStep === 5 && <Step5KnowledgeLevel userData={userData} updateData={updateData} />}
           </div>
 
-          {/* Navigation */}
           <div className="flex items-center justify-between pt-4 sm:pt-6 border-t border-gray-100">
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg cursor-pointer font-medium transition-colors text-sm sm:text-base ${currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
-                }`}
+              className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg cursor-pointer font-medium transition-colors text-sm sm:text-base ${
+                currentStep === 1 ? "text-gray-300 cursor-not-allowed" : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               이전
             </button>
+
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 text-sm sm:text-base ${!isStepValid() ? "bg-gray-300 cursor-not-allowed shadow-none" : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
-                }`}
+              className={`px-6 sm:px-8 py-2 sm:py-2.5 rounded-lg cursor-pointer font-bold text-white shadow-lg transition-all transform active:scale-95 text-sm sm:text-base ${
+                !isStepValid()
+                  ? "bg-gray-300 cursor-not-allowed shadow-none"
+                  : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/30"
+              }`}
             >
               {currentStep === 5 ? (isEditing ? "수정 완료" : "완료") : "다음"}
             </button>
